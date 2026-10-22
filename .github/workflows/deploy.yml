@@ -1,0 +1,72 @@
+name: CI and production deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: alfa-potok-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Test backend
+        run: |
+          pip install -r backend/requirements-dev.txt
+          python -m pytest
+          python backend/manage.py check
+          python backend/manage.py makemigrations --check --dry-run
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Build production images
+        run: |
+          docker build -f backend/Dockerfile.prod -t "alfa-potok-backend:$GITHUB_SHA" backend
+          docker build -f frontend/Dockerfile.prod -t "alfa-potok-frontend:$GITHUB_SHA" frontend
+      - name: Deploy production
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.ALFA_DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.ALFA_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/alfa_deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'rm -f ~/.ssh/alfa_deploy images.tar.gz' EXIT
+          docker save "alfa-potok-backend:$GITHUB_SHA" "alfa-potok-frontend:$GITHUB_SHA" | gzip -1 > images.tar.gz
+          ssh -T -i ~/.ssh/alfa_deploy -p 22222 \
+            -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=10 \
+            alfa-deploy@2.27.205.29 "deploy $GITHUB_SHA" < images.tar.gz
+      - name: Verify public HTTPS
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 https://alpha.srv-node.com/ -o /dev/null
+          curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 https://alpha.srv-node.com/api/v1/health/

@@ -45,7 +45,9 @@ Set-Location backend
 Из корня также можно выполнить `docker compose up --build`, если запущен Docker Desktop.
 Команда запускает Django на порту 8000 и Vue/Vite на порту 5173.
 Backend автоматически применяет миграции и создаёт демо-пользователей. БД хранится в named volume.
-Это локальный демонстрационный сервер Django; внешний хостинг будет отдельным шагом.
+Это локальный демонстрационный сервер Django.
+Production: https://alpha.srv-node.com — Gunicorn, статическая Vue-сборка,
+HTTPS и CI/CD GitHub Actions. Настройка и откат: [deploy/README.md](deploy/README.md).
 Для локального запуска вне Docker БД находится в `backend/data/db.sqlite3`.
 
 ## Проверка через Swagger
