@@ -1,6 +1,7 @@
 <script setup>
 import PageHeading from '../components/PageHeading.vue'
 import UiButton from '../components/UiButton.vue'
+import AppIcon from '../components/AppIcon.vue'
 import { money, riskFactors } from '../data/demo'
 
 defineProps({ application: Object })
@@ -43,12 +44,30 @@ const decisions = [
   </div>
   <div class="grid2">
     <div class="card">
-      <b>Факторы риска · иллюстрация</b>
-      <div v-for="factor in riskFactors" :key="factor.title" class="line flex">
-        <span>{{ factor.title }}</span
-        ><b :class="factor.impact > 0 ? 'positive' : 'red'"
-          >{{ factor.impact > 0 ? '+' : '' }}{{ factor.impact }}</b
-        >
+      <div class="section-title">
+        <h2>Что влияет на оценку</h2>
+        <AppIcon name="detail" />
+      </div>
+      <p class="small muted">
+        Иллюстрация вкладов факторов в скоринговый балл
+      </p>
+      <div
+        v-for="factor in riskFactors"
+        :key="factor.title"
+        class="risk-factor"
+      >
+        <div class="flex">
+          <span>{{ factor.title }}</span
+          ><b :class="factor.impact > 0 ? 'positive' : 'red'"
+            >{{ factor.impact > 0 ? '+' : '' }}{{ factor.impact }}</b
+          >
+        </div>
+        <div class="risk-track">
+          <span
+            :class="{ negative: factor.impact < 0 }"
+            :style="{ width: `${Math.abs(factor.impact)}%` }"
+          ></span>
+        </div>
       </div>
       <p class="small muted">
         ML оценивает риск, но решение принимает кредитная логика банка.

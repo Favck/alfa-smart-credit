@@ -1,129 +1,216 @@
 <script setup>
+import { computed } from 'vue'
 import UiButton from '../components/UiButton.vue'
-import FinanceArt from '../components/FinanceArt.vue'
 import AppIcon from '../components/AppIcon.vue'
 import AnimatedNumber from '../components/AnimatedNumber.vue'
-import { money } from '../data/demo'
+import { money, steps } from '../data/demo'
 
-defineProps({
+const props = defineProps({
   profile: Object,
   application: Object,
   product: Object,
   stage: { type: Number, default: 2 },
 })
 defineEmits(['navigate'])
-const today = new Intl.DateTimeFormat('ru-RU', {
-  dateStyle: 'long',
-  timeZone: 'Europe/Moscow',
-}).format(new Date())
+const approved = computed(() => props.stage === 4)
+const status = computed(() =>
+  approved.value
+    ? 'Одобрено'
+    : props.stage === 3
+      ? 'Решение банка'
+      : 'На рассмотрении',
+)
+const message = computed(() =>
+  approved.value
+    ? 'Финансирование одобрено!'
+    : props.stage === 3
+      ? 'Формируем решение'
+      : 'Ваши планы уже в работе',
+)
 </script>
 
 <template>
-  <div class="home-greeting flex wrap">
-    <div>
-      <h1 class="heading">Здравствуйте, {{ profile.name }}</h1>
-    </div>
-    <span class="date-label">{{ today }}</span>
-  </div>
-  <section class="banner">
-    <div class="banner-copy">
-      <h2>Ваши планы.<br /><span>Наши возможности.</span></h2>
+  <section class="dashboard-hero">
+    <div class="dashboard-hero-copy">
+      <span class="eyebrow">ВАШ БИЗНЕС — НАШИ ВОЗМОЖНОСТИ</span>
+      <h1>Здравствуйте, {{ profile.name }}!</h1>
       <p>
-        Финансируем развитие вашего бизнеса —<br class="desktop-break" />
-        от оборотных средств до масштабных проектов.
+        Альфа.Поток помогает вашему бизнесу расти.<br />Подберите подходящее
+        финансирование или создайте новую заявку в несколько кликов.
       </p>
       <div class="hero-actions">
         <UiButton @click="$emit('navigate', 'products')"
-          >Подобрать финансирование <span aria-hidden="true">↗</span></UiButton
+          >Подобрать финансирование <AppIcon name="arrow" /></UiButton
+        ><UiButton alt @click="$emit('navigate', 'apply')"
+          ><AppIcon name="apply" />Создать заявку</UiButton
         >
       </div>
     </div>
-    <FinanceArt />
+    <div class="hero-photo" aria-hidden="true"></div>
+    <div class="glass-message">
+      <strong>Развиваем<br />российский бизнес<br />вместе</strong><i></i
+      ><span>Больше возможностей<br />для тех, кто создаёт<br />будущее</span>
+    </div>
   </section>
+
   <div class="grid3 overview-grid">
-    <div class="card overview-card">
-      <span class="overview-icon"><AppIcon name="applications" /></span>
-      <div>
-        <div class="small muted">Активные заявки</div>
-        <div class="stat">
-          <AnimatedNumber :value="1" />
-        </div>
-      </div>
-    </div>
-    <div class="card overview-card">
-      <span class="overview-icon"><span aria-hidden="true">₽</span></span>
-      <div>
-        <div class="small muted">Запрошено</div>
-        <div class="stat">
-          <AnimatedNumber :value="application.amount" currency />
-        </div>
-      </div>
-    </div>
-    <div class="card overview-card">
-      <span class="overview-icon"><AppIcon name="profile" /></span>
-      <div class="overview-company">
-        <div class="small muted">Профиль компании</div>
-        <div class="stat">
-          <AnimatedNumber :value="100" /><span class="stat-unit">%</span>
-        </div>
-      </div>
-    </div>
+    <button
+      class="card overview-card"
+      @click="$emit('navigate', 'applications')"
+    >
+      <span class="overview-icon accent"><AppIcon name="applications" /></span
+      ><span class="metric-copy"
+        ><span class="metric-label">Активные заявки</span
+        ><strong><AnimatedNumber :value="1" /></strong
+        ><span class="muted small">Следите за каждым этапом</span></span
+      ><AppIcon name="chevron" />
+    </button>
+    <button
+      class="card overview-card"
+      @click="$emit('navigate', 'applications')"
+    >
+      <span class="overview-icon"><AppIcon name="coins" /></span
+      ><span class="metric-copy"
+        ><span class="metric-label">Сумма заявок</span
+        ><strong
+          ><AnimatedNumber :value="application.amount" currency /></strong
+        ><span class="muted small">Общая запрашиваемая сумма</span></span
+      ><AppIcon name="chevron" />
+    </button>
+    <button class="card overview-card" @click="$emit('navigate', 'profile')">
+      <span class="completion-ring">100<span>%</span></span
+      ><span class="metric-copy"
+        ><span class="metric-label">Профиль компании</span
+        ><b>Всё готово к новым планам</b
+        ><span class="muted small"
+          >Реквизиты автоматически<br />подставляются в заявку</span
+        ></span
+      ><AppIcon name="chevron" />
+    </button>
   </div>
-  <div class="grid2 home-details">
-    <section>
-      <div class="card application-preview">
-        <div class="flex">
-          <span class="eyebrow">ЗАЯВКА APP-1042</span
-          ><span class="pill"
-            ><span></span>
-            {{ stage === 4 ? 'Одобрена' : 'На рассмотрении' }}</span
+
+  <section class="card dashboard-section">
+    <div class="section-title">
+      <h2>Последняя заявка</h2>
+      <button class="link" @click="$emit('navigate', 'applications')">
+        Все заявки <AppIcon name="arrow" />
+      </button>
+    </div>
+    <div class="latest-application">
+      <div class="application-details">
+        <div class="application-title-row">
+          <span class="overview-icon accent"><AppIcon name="coins" /></span>
+          <div>
+            <h3>Заявка APP-1042</h3>
+            <span class="muted">{{ product.name }}</span>
+          </div>
+          <span class="pill" :class="approved ? 'success' : 'pending'"
+            ><AppIcon :name="approved ? 'check' : 'clock'" />{{ status }}</span
           >
         </div>
-        <h3>{{ product.name }}</h3>
-        <div class="preview-amount">
-          {{ money(application.amount) }}
-          <span>на {{ application.months }} мес.</span>
-        </div>
-        <div class="preview-stepper">
-          <div
-            v-for="(label, index) in [
-              'Заявка создана',
-              'Проверка',
-              'Оценка рисков',
-              'Решение',
-              'Подписание',
-            ]"
-            :key="label"
-            class="preview-step"
-            :class="{ complete: index < stage, current: index === stage }"
-          >
-            <span class="preview-step-dot"></span><span>{{ label }}</span>
+        <div class="application-numbers">
+          <div>
+            <span>Сумма</span><strong>{{ money(application.amount) }}</strong>
+          </div>
+          <div>
+            <span>Срок</span><strong>{{ application.months }} мес.</strong>
+          </div>
+          <div>
+            <span>Ежемесячная выручка</span
+            ><strong>{{ money(application.revenue) }}</strong>
           </div>
         </div>
-        <div class="flex preview-footer">
-          <span class="muted small">Оцениваем возможности бизнеса</span
-          ><button
-            class="round-arrow"
-            aria-label="Открыть заявку"
-            @click="$emit('navigate', 'applications')"
+        <ol class="horizontal-timeline" aria-label="Путь заявки">
+          <li
+            v-for="(step, index) in steps"
+            :key="step.title"
+            :class="{ done: index < stage, current: index === stage }"
+            :aria-current="index === stage ? 'step' : undefined"
           >
-            ↗
-          </button>
+            <span class="timeline-dot"
+              ><AppIcon v-if="index < stage" name="check" /><span
+                v-else
+              ></span></span
+            ><b>{{ step.title }}</b
+            ><small>{{
+              index < stage
+                ? 'Завершено'
+                : index === stage
+                  ? 'Текущий этап'
+                  : 'Ожидает'
+            }}</small>
+          </li>
+        </ol>
+      </div>
+      <div class="application-next" :class="{ 'is-approved': approved }">
+        <div class="next-heading">
+          <span class="status-medallion"
+            ><AppIcon :name="approved ? 'check' : 'clock'"
+          /></span>
+          <div>
+            <h3>{{ message }}</h3>
+            <p>
+              {{
+                approved
+                  ? `Банк подтвердил финансирование на сумму ${money(application.amount)} сроком на ${application.months} мес.`
+                  : steps[stage].description +
+                    '. Мы сообщим о следующем шаге в кабинете.'
+              }}
+            </p>
+          </div>
+        </div>
+        <UiButton @click="$emit('navigate', 'applications')"
+          >{{ approved ? 'Посмотреть решение' : 'Открыть заявку'
+          }}<AppIcon name="arrow"
+        /></UiButton>
+        <div class="document-note">
+          <AppIcon name="applications" /><span>{{
+            approved
+              ? 'Ознакомьтесь с результатом рассмотрения в карточке заявки.'
+              : 'Пока никаких действий от вас не требуется. Все обновления появятся здесь.'
+          }}</span>
         </div>
       </div>
-    </section>
-    <section>
-      <button class="card editorial-card" @click="$emit('navigate', 'news')">
-        <span class="news-tag">ПОЛЕЗНО ДЛЯ БИЗНЕСА</span>
-        <h3>Идеи для роста</h3>
-        <p>
-          Практические материалы,<br />разборы и истории предпринимателей<br />в
-          нашем журнале.
-        </p>
-        <span class="editorial-bottom"
-          >Читать подборку <span aria-hidden="true">↗</span></span
-        >
+    </div>
+  </section>
+
+  <section class="card dashboard-section useful-section">
+    <div class="section-title">
+      <h2>Полезное для вашего бизнеса</h2>
+      <button class="link" @click="$emit('navigate', 'news')">
+        Все материалы <AppIcon name="arrow" />
       </button>
-    </section>
-  </div>
+    </div>
+    <div class="useful-grid">
+      <button class="useful-card" @click="$emit('navigate', 'news')">
+        <img
+          src="/images/bakery-story.png"
+          alt="Свежая выпечка в пекарне"
+        /><span
+          ><span class="news-tag">Статья</span
+          ><strong>Как превратить планы в рост бизнеса</strong
+          ><span class="muted">Идеи и решения для вашей отрасли.</span></span
+        ><AppIcon name="chevron" />
+      </button>
+      <button class="useful-card" @click="$emit('navigate', 'news')">
+        <span class="useful-illustration"><AppIcon name="idea" /></span
+        ><span
+          ><span class="news-tag rose">Совет</span
+          ><strong>Как управлять денежным потоком</strong
+          ><span class="muted"
+            >Практические рекомендации для предпринимателей.</span
+          ></span
+        ><AppIcon name="chevron" />
+      </button>
+      <button class="useful-card" @click="$emit('navigate', 'products')">
+        <img src="/images/product-growth.png" alt="" /><span
+          ><span class="news-tag rose">Рекомендуем</span
+          ><strong>Оборотный кредит для постоянного роста</strong
+          ><span class="muted"
+            >Финансирование для вашего следующего шага.</span
+          ></span
+        ><AppIcon name="chevron" />
+      </button>
+    </div>
+  </section>
 </template>

@@ -15,7 +15,6 @@ import NewsPage from './pages/NewsPage.vue'
 import ProfilePage from './pages/ProfilePage.vue'
 import BankQueuePage from './pages/BankQueuePage.vue'
 import BankDetailPage from './pages/BankDetailPage.vue'
-import FinanceArt from './components/FinanceArt.vue'
 import AppIcon from './components/AppIcon.vue'
 
 const dark = ref(false)
@@ -87,22 +86,16 @@ function openCase(id) {
 </script>
 
 <template>
-  <div class="app-shell reference-design" :class="{ dark }">
-    <div class="utility-bar">
-      <div>
-        <span>Малый бизнес и ИП</span><span class="utility-divider"></span>
-        <span>Кредитный кабинет</span>
-      </div>
-      <span class="utility-demo"><span></span> Демо для хакатона</span>
-    </div>
+  <div class="app-shell" :class="{ dark }">
     <header class="top">
-      <div class="brand">
-        <span class="logo">А<span></span></span>
-        <span class="brand-name">альфа<span>.поток</span></span>
-        <span class="brand-caption"
-          >Больше возможностей<br />для вашего бизнеса</span
-        >
-      </div>
+      <button
+        class="brand"
+        aria-label="Альфа.Поток — главная"
+        @click="view = profile?.role === 'bank' ? 'queue' : 'home'"
+      >
+        <span class="brand-name"><span>Альфа.</span>Поток</span>
+        <span class="demo-badge">Демо</span>
+      </button>
       <nav v-if="profile" id="desktop" aria-label="Основная навигация">
         <button
           v-for="tab in tabs"
@@ -116,74 +109,82 @@ function openCase(id) {
         </button>
       </nav>
       <div class="actions">
+        <label v-if="profile" class="company-select">
+          <AppIcon name="profile" />
+          <select
+            aria-label="Демо-профиль"
+            :value="profileId"
+            @change="selectProfile($event.target.value)"
+          >
+            <option v-for="item in profiles" :key="item.id" :value="item.id">
+              {{ item.role === 'bank' ? 'Сотрудник банка' : item.company }}
+            </option>
+          </select>
+        </label>
         <button
+          v-if="profile"
+          class="user-control"
+          :disabled="profile.role === 'bank'"
+          @click="view = 'profile'"
+        >
+          <AppIcon name="user" /><span
+            >{{ profile.name
+            }}<span class="user-surname">
+              {{
+                profile.role === 'bank'
+                  ? profile.fullName.split(' ').slice(1).join(' ')
+                  : profile.fullName.split(' ')[0]
+              }}</span
+            ></span
+          >
+        </button>
+        <button
+          class="icon-button theme-button"
           aria-label="Сменить тему"
           :aria-pressed="dark"
           @click="dark = !dark"
         >
-          <svg
-            v-if="!dark"
-            viewBox="0 0 24 24"
-            class="app-icon"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.6"
-            aria-hidden="true"
-          >
-            <path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z" />
-          </svg>
-          <svg
-            v-else
-            viewBox="0 0 24 24"
-            class="app-icon"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.6"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="4" />
-            <path
-              d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"
-            />
-          </svg>
+          <AppIcon :name="dark ? 'sun' : 'moon'" />
         </button>
-        <select
+        <button
           v-if="profile"
-          aria-label="Демо-профиль"
-          :value="profileId"
-          @change="selectProfile($event.target.value)"
+          class="icon-button logout-button"
+          aria-label="Выйти"
+          title="Выйти"
+          @click="profileId = ''"
         >
-          <option v-for="item in profiles" :key="item.id" :value="item.id">
-            {{ item.role === 'bank' ? 'Банк' : item.company }}
-          </option>
-        </select>
-        <button v-if="profile" class="logout-button" @click="profileId = ''">
-          Выйти <span aria-hidden="true">↗</span>
+          <AppIcon name="logout" />
         </button>
         <span v-else class="header-secure"
-          ><span aria-hidden="true">◈</span> Кабинет предпринимателя</span
+          ><AppIcon name="lock" />Кабинет предпринимателя</span
         >
       </div>
     </header>
     <Transition name="session" mode="out-in" appear>
       <main v-if="!profile" v-reveal key="profiles" class="profile-picker">
         <section class="welcome-copy">
-          <span class="eyebrow"><span></span> АЛЬФА.ПОТОК ДЛЯ БИЗНЕСА</span>
-          <h1>Бизнес растёт.<br />Всё идёт<br /><span>по плану.</span></h1>
+          <span class="eyebrow">ВАШ БИЗНЕС — НАШИ ВОЗМОЖНОСТИ</span>
+          <h1>Большие планы.<br />Понятный путь.</h1>
           <p class="welcome-description">
-            От первой идеи до финансирования.<br />Понятный путь для больших
-            планов.
+            Финансирование для тех, кто создаёт.<br />От первой заявки до новых
+            возможностей —<br />в одном кабинете.
           </p>
           <div class="welcome-benefits">
-            <span>Без лишних бумаг</span><span>Всё онлайн</span
-            ><span>Понятные этапы</span>
+            <span><AppIcon name="check" />Всё онлайн</span
+            ><span><AppIcon name="check" />Понятные этапы</span
+            ><span><AppIcon name="check" />Для вашего бизнеса</span>
           </div>
-          <FinanceArt />
+          <div class="welcome-photo">
+            <div class="glass-message">
+              Ваше дело.<br /><strong>Новые возможности.</strong
+              ><span>Поддерживаем бизнес<br />на каждом этапе роста</span>
+            </div>
+          </div>
         </section>
         <section class="entry-panel">
           <div class="entry-heading">
             <span class="eyebrow">НАЧНЁМ ЗНАКОМСТВО</span>
-            <h2>Ваш бизнес.<br />Ваш кабинет.</h2>
+            <h2>Добро пожаловать</h2>
             <p class="muted">
               Выберите готовый профиль и посмотрите,<br
                 class="desktop-break"

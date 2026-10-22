@@ -1,5 +1,6 @@
 <script setup>
 import PageHeading from '../components/PageHeading.vue'
+import AppIcon from '../components/AppIcon.vue'
 import { money } from '../data/demo'
 
 defineProps({ cases: Array })
@@ -12,20 +13,31 @@ defineEmits(['open'])
     description="Очередь заявок малого и микробизнеса · демоданные"
   />
   <div class="grid3 mb">
-    <div class="card">
-      <div class="small muted">Всего заявок</div>
-      <div class="stat">{{ cases.length }}</div>
-    </div>
-    <div class="card">
-      <div class="small muted">Без деморешения</div>
-      <div class="stat">
-        {{ cases.filter((item) => !item.decision).length }}
+    <div class="card bank-metric">
+      <span class="overview-icon"><AppIcon name="applications" /></span>
+      <div>
+        <div class="small muted">Всего заявок</div>
+        <div class="stat">{{ cases.length }}</div>
       </div>
     </div>
-    <div class="card">
-      <div class="small muted">Требуют внимания</div>
-      <div class="stat">
-        {{ cases.filter((item) => item.score < 620 && !item.decision).length }}
+    <div class="card bank-metric">
+      <span class="overview-icon accent"><AppIcon name="clock" /></span>
+      <div>
+        <div class="small muted">Без деморешения</div>
+        <div class="stat">
+          {{ cases.filter((item) => !item.decision).length }}
+        </div>
+      </div>
+    </div>
+    <div class="card bank-metric">
+      <span class="overview-icon"><AppIcon name="detail" /></span>
+      <div>
+        <div class="small muted">Требуют внимания</div>
+        <div class="stat">
+          {{
+            cases.filter((item) => item.score < 620 && !item.decision).length
+          }}
+        </div>
       </div>
     </div>
   </div>
@@ -38,6 +50,7 @@ defineEmits(['open'])
             <th>Компания</th>
             <th>Сумма</th>
             <th>Скоринг</th>
+            <th>Решение</th>
             <th>Действие</th>
           </tr>
         </thead>
@@ -50,7 +63,18 @@ defineEmits(['open'])
             <td>{{ money(item.amount) }}</td>
             <td>
               <b>{{ item.score }}</b>
-              <div class="muted">{{ item.risk }}</div>
+              <div>
+                <span
+                  class="pill"
+                  :class="item.score >= 620 ? 'success' : 'pending'"
+                  >{{ item.risk }} риск</span
+                >
+              </div>
+            </td>
+            <td>
+              <span class="pill" :class="{ success: item.decision }">{{
+                item.decision || 'Ожидает решения'
+              }}</span>
             </td>
             <td>
               <button

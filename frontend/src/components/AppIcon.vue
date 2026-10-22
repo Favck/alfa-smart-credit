@@ -1,6 +1,19 @@
 <script setup>
 defineProps({ name: { type: String, default: 'home' } })
 const paths = {
+  user: 'M20 21v-2a6 6 0 0 0-12 0v2m6-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
+  arrow: 'M4 12h15m-6-6 6 6-6 6',
+  chevron: 'm9 5 7 7-7 7',
+  check: 'm5 12 4 4L19 6',
+  clock: 'M12 8v5l3 2m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+  coins:
+    'M20 6c0 2-4 4-8 4S4 8 4 6s4-4 8-4 8 2 8 4ZM4 6v12c0 2 4 4 8 4s8-2 8-4V6M4 12c0 2 4 4 8 4s8-2 8-4',
+  logout: 'M10 4H5v16h5m3-12 4 4-4 4m-5-4h13',
+  lock: 'M7 10V7a5 5 0 0 1 10 0v3M5 10h14v11H5Zm7 4v3',
+  moon: 'M20 15a9 9 0 0 1-11-11 9 9 0 1 0 11 11Z',
+  sun: 'M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2m-3 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z',
+  idea: 'M9 18h6m-5 3h4M8 14a6 6 0 1 1 8 0c-1 1-1 2-1 3H9c0-1 0-2-1-3Z',
+
   home: 'm3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z',
   products: 'M4 4h6v6H4Zm10 0h6v6h-6ZM4 14h6v6H4Zm10 0h6v6h-6Z',
   apply: 'M12 5v14M5 12h14',
