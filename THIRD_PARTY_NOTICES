@@ -1,0 +1,37 @@
+Alfa.Potok prototype backend
+
+Runtime components (exact versions are pinned in backend/requirements.txt):
+- Python — Python Software Foundation License.
+- Django — BSD-3-Clause.
+- Django REST Framework — BSD-3-Clause.
+- drf-spectacular — BSD-3-Clause.
+- drf-spectacular-sidecar — BSD-3-Clause; bundled Swagger UI — Apache-2.0.
+- SQLite — public domain (provided by the Python runtime).
+- asgiref — BSD-3-Clause; sqlparse — BSD-3-Clause; tzdata — Apache-2.0 (code), public domain (IANA data).
+- PyYAML — MIT; uritemplate — BSD-3-Clause / Apache-2.0; inflection — MIT.
+- jsonschema, jsonschema-specifications, referencing, rpds-py — MIT.
+- attrs — MIT; typing-extensions — PSF-2.0.
+
+Development tools (pinned in backend/requirements-dev.txt):
+- Black — MIT.
+- isort — MIT.
+- Flake8 — MIT.
+- pytest — MIT; pytest-django — BSD-3-Clause.
+
+Frontend components (exact versions in frontend/package-lock.json):
+- Vue.js — MIT.
+- Vite — MIT.
+- @vitejs/plugin-vue — MIT.
+- Prettier — MIT (development formatting).
+
+Synthetic/local data:
+- The five UI images in frontend/public/images were generated using built-in ImageGen
+  for this project. Prompts are recorded in docs/design/assets-prompts.json.
+  Original files are bundled locally; no external image service is needed at runtime.
+- User profiles, company details, product terms and articles in api/demo_data.py are synthetic demo data.
+- Product rates are illustrative; no current central-bank or commercial-bank feed is connected.
+- No external datasets, trained models or paid APIs are used by this backend.
+- EGRUL/EGRIP/FNS/BKI, ML scoring, document signing and disbursement are planned integrations only.
+  Their contract endpoints currently return HTTP 501, and do not perform external or financial operations.
+- Original task documents and the HTML prototype were supplied by the project owner;
+  third-party names and trademarks remain the property of their respective owners.

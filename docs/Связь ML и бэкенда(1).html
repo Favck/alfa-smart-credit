@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Связь ML и бэкенда | Альфа-Банк Хакатон</title>
+<style>
+:root{--bg:#f1f1f2;--card:#fff;--tx:#141414;--mu:#6b6b72;--ln:#e3e3e6;--red:#ef3124;--pur:#9b33ff;--blue:#0055ff;--grn:#16a34a;--amber:#f59e0b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17171a;--card:#222226;--tx:#f4f4f5;--mu:#9a9aa3;--ln:#34343a}}
+*{box-sizing:border-box}html{color-scheme:light dark}
+body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);padding:18px 14px 40px}
+.w{max-width:920px;margin:0 auto}h1{font-size:24px;margin:0 0 4px}h2{font-size:17px;margin:22px 0 8px}.mu{color:var(--mu);font-size:13px}
+.row{display:grid;grid-template-columns:1fr 150px 1fr;gap:8px;align-items:stretch;margin-top:14px}
+@media(max-width:700px){.row{grid-template-columns:1fr}.mid{flex-direction:row!important;padding:6px 0}.mid .ar{transform:rotate(90deg)}}
+.node{background:var(--card);border:2px solid var(--ln);border-radius:18px;padding:14px}
+.node.b{border-color:var(--blue)}.node.m{border-color:var(--pur)}
+.node h3{margin:0 0 6px;font-size:16px}.node ul{margin:0;padding-left:18px;font-size:13.5px}
+.tag{display:inline-block;font-size:11px;font-weight:700;color:#fff;padding:2px 9px;border-radius:99px;margin-bottom:6px}
+.mid{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;font-size:12px;text-align:center;font-weight:600}
+.ar{font-size:26px;line-height:1}.go{color:var(--blue)}.back{color:var(--pur)}
+.box{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:14px;margin-top:10px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.box ul{margin:4px 0 0;padding-left:18px;font-size:14px}
+.fail{border-left:4px solid var(--red);background:rgba(239,49,36,.08);border-radius:10px;padding:10px 12px;font-size:14px;margin-top:10px}
+.sh div{display:flex;justify-content:space-between;padding:4px 0;font-size:14px;border-bottom:1px solid var(--ln)}
+.p{color:var(--grn);font-weight:700}.n{color:var(--red);font-weight:700}
+.tree{margin:0;overflow-x:auto;font:13px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre}
+.tg{display:inline-block;font:700 10.5px/1 system-ui,sans-serif;color:#fff;padding:3px 7px;border-radius:6px;vertical-align:1px}
+.tb{background:var(--blue)}.tm{background:var(--pur)}.tf{background:var(--grn)}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.badge-green{background:#dcfce7;color:#166534}
+.badge-yellow{background:#fef3c7;color:#92400e}
+.badge-red{background:#fee2e2;color:#991b1b}
+</style></head><body><div class="w">
+<h1>Связь ML и бэкенда (Архитектурный контракт)</h1><div class="mu">Сквозное взаимодействие: сбор признаков, скоринг риска, Explainability для андеррайтера и машина состояний.</div>
+
+<div class="row">
+<div class="node b"><span class="tag" style="background:var(--blue)">Бэкенд · Django</span><h3>Оркестратор конвейера</h3><ul><li>Хранит заявку и машину состояний</li><li>Берёт данные из моков ЕГРЮЛ / БКИ</li><li>Собирает признаки заявки для скоринга</li><li>Решает: одобрить / контроффер / запрос / отказ</li><li>Обеспечивает экран андеррайтера (REVIEW)</li><li>Интегрирует LLM (OpenAI-compatible) в субботу</li></ul></div>
+<div class="mid"><div class="go">POST /score</div><div class="ar go">→</div><div>«признаки заявки»</div><div class="ar back">←</div><div class="back">JSON ответ</div><div>«риск, балл, веса, лимит»</div></div>
+<div class="node m"><span class="tag" style="background:var(--pur)">ML · FastAPI</span><h3>Движок оценки риска</h3><ul><li>Правила-стопы (просрочки, ликвидация)</li><li>Скоринговая модель (скоркарта / LightGBM)</li><li>Расчет Explainability (SHAP / веса причин)</li><li>Расчет посильной суммы (max_limit)</li><li>Не ходит в БД и внешние сервисы</li><li>Не принимает кредитное решение</li></ul></div>
+</div>
+
+<h2>Что идёт туда (Django → FastAPI: POST /score)</h2>
+<div class="box"><ul>
+<li><b>Идентификаторы:</b> <code>application_id</code>, <code>request_id</code> (сквозной трейсинг)</li>
+<li><b>Параметры заявки:</b> продукт, запрошенная сумма, срок</li>
+<li><b>Финансовые метрики:</b> заявленная выручка, текущие платежи, расчетный DTI</li>
+<li><b>Данные обогащения (ЕГРЮЛ):</b> возраст бизнеса (мес.), отрасль (ОКВЭД), статус</li>
+<li><b>Данные БКИ:</b> наличие истории, число закрытых кредитов, просрочки (0 / 30 / 90+)</li>
+</ul></div>
+
+<h2>Что идёт обратно (FastAPI → Django: 200 OK)</h2>
+<div class="box"><ul>
+<li><b>Оценка риска:</b> <code>score</code> (300–850), <code>pd</code> (вероятность дефолта, 0.0–1.0), <code>risk_grade</code> (A, B, C, D)</li>
+<li><b>Стоп-факторы:</b> <code>stop_factors: []</code> (если сработали — код и описание, напр. "BKI_OVERDUE_90")</li>
+<li><b>Explainability (факторы скоринга):</b> структурированный список топ-3…5 драйверов для экрана андеррайтера</li>
+<li><b>Посильная сумма:</b> <code>max_limit</code> (максимальная сумма кредита, если запрошено слишком много)</li>
+<li><b>Служебное:</b> <code>model_version</code>, <code>calculation_time_ms</code></li>
+</ul></div>
+
+<h2>Синхронизация под 3 обязательных демо-сценария</h2>
+<div class="cols">
+<div class="box" style="border-left:4px solid var(--grn)">
+<b>🟢 ООО «Пекарня Зерно» (Зеленый)</b>
+<div style="font-size:13px;margin-top:4px">
+• Score: <b>670</b> (≥ 620), PD: 0.03, Grade: A<br>
+• Стоп-факторы: отсутствуют<br>
+• Вердикт конвейера: <b>APPROVED (Автоодобрение)</b>
+</div>
+</div>
+<div class="box" style="border-left:4px solid var(--amber)">
+<b>🟡 ИП Смирнов А.В. (Желтый)</b>
+<div style="font-size:13px;margin-top:4px">
+• Score: <b>560</b> (520–619), PD: 0.09, Grade: C<br>
+• max_limit: <b>1 200 000 ₽</b> (запрошено 2 млн)<br>
+• Вердикт: <b>REVIEW</b> → Андеррайтер делает <b>COUNTER_OFFER</b>
+</div>
+</div>
+<div class="box" style="border-left:4px solid var(--red)">
+<b>🔴 ООО «СтройВектор» (Красный)</b>
+<div style="font-size:13px;margin-top:4px">
+• Score: <b>430</b> (&lt; 520), PD: 0.28, Grade: D<br>
+• Стоп-фактор: <code>BKI_90_PLUS_OVERDUE</code><br>
+• Вердикт: <b>REJECTED (Мотивированный отказ)</b>
+</div>
+</div>
+</div>
+
+<h2>Объяснение для пользователя и андеррайтера (Explainability)</h2>
+<div class="cols">
+<div class="box"><b>Формат передачи факторов:</b>
+<p style="font-size:13px;margin:4px 0 0">ML отдает структурированный массив. Бэкенд и фронтенд отображают его: клиенту — понятными словами, андеррайтеру — в виде графика плюсов и минусов к базовому баллу.</p>
+</div>
+<div class="box sh"><b>Пример факторов (Explainability)</b>
+<div><span>Долговая нагрузка выше нормы (DTI > 50%)</span><span class="n">−40</span></div>
+<div><span>Положительная история в БКИ (нет просрочек)</span><span class="p">+60</span></div>
+<div><span>Стабильный возраст бизнеса (4 года)</span><span class="p">+40</span></div>
+<div><span>Длинный срок кредита (24 мес.)</span><span class="n">−10</span></div></div></div>
+
+<h2>Если ML-сервис недоступен (Отказоустойчивость)</h2>
+<div class="fail">Таймаут вызова ML — <b>2.5 секунды</b>. Если сервис упал или не ответил вовремя, бэкенд <b>не падает с 500 ошибкой</b>, а переводит заявку в статус <b>REVIEW</b> с системным флагом <code>scoring_unavailable: true</code> для ручной оценки андеррайтером.</div>
+
+<h2>Пайплайн одной заявки (дерево переходов)</h2>
+<div class="box"><div class="mu" style="margin-bottom:8px"><span class="tg tb">БЭК</span> делает бэкенд · <span class="tg tm">ML</span> делает ML-сервис · <span class="tg tf">КЛ</span> действие клиента</div>
+<pre class="tree"><span class="tg tf">КЛ</span> Выбрал компанию и отправил заявку
+└─ <span class="tg tb">БЭК</span> Сохранил заявку → <b>SUBMITTED</b>
+   └─ <span class="tg tb">БЭК</span> Проверка полноты → <b>CHECK</b>
+      ├─ не хватает обязательных полей → <b>NEED_INFO</b> → <span class="tg tf">КЛ</span> догружает → возврат в <b>ENRICH / REVIEW</b>
+      └─ форма валидна → <b>ENRICH</b>
+         └─ <span class="tg tb">БЭК</span> Моки ЕГРЮЛ + БКИ → собрал признаки
+            └─ <span class="tg tb">БЭК</span> Запрос POST /score в ML → <b>SCORING</b>
+               ├─ <span class="tg tm">ML</span> 1. Валидация схемы данных Pydantic
+               ├─ <span class="tg tm">ML</span> 2. Проверка правил-стопов (ликвидация, дефолт БКИ)
+               │   ├─ стоп сработал → ответ с stop_factors
+               │   └─ стопов нет → шаг 3
+               ├─ <span class="tg tm">ML</span> 3. Модель → score, PD, grade
+               ├─ <span class="tg tm">ML</span> 4. Explainability → топ-3…5 факторов с баллами и текстом
+               ├─ <span class="tg tm">ML</span> 5. Расчет max_limit → ответ Django
+               │
+               ├─ ML упал / таймаут → <span class="tg tb">БЭК</span> ручной разбор → <b>REVIEW</b>
+               └─ ML ответил 200 OK → <span class="tg tb">БЭК</span> Сохранил ScoreResult, применил матрицу решений:
+                  ├─ [Зеленый] типовой автоскоринг → <b>APPROVED</b> → генерация оффера
+                  ├─ [Красный] критический стоп-фактор → <b>REJECTED</b> (мотивированный отказ)
+                  └─ [Желтый] пограничный случай / крупная сумма → <b>REVIEW (Экран андеррайтера)</b>
+                     ├─ Андеррайтер: Одобрить → <b>APPROVED</b>
+                     ├─ Андеррайтер: Скорректировать лимит → <b>COUNTER_OFFER</b>
+                     │   ├─ <span class="tg tf">КЛ</span> Согласен со встречными условиями → <b>SIGNING</b>
+                     │   └─ <span class="tg tf">КЛ</span> Отказался от встречных условий → <b>CANCELLED</b>
+                     ├─ Андеррайтер: Запросить выписку/документ → <b>NEED_INFO</b>
+                     │   └─ <span class="tg tf">КЛ</span> Загрузил документ → возврат в <b>ENRICH / REVIEW</b>
+                     └─ Андеррайтер: Отклонить с причиной → <b>REJECTED</b>
+                        └─ <span class="tg tf">КЛ</span> Ознакомление с договором → ПЭП (подписание) → <b>SIGNING</b> → <b>DISBURSED</b> (Выдано)</pre></div>
+
+<h2>Зоны ответственности и стек</h2>
+<div class="cols">
+<div class="box" style="border-top:4px solid var(--pur)"><b>ML (FastAPI)</b><ul><li>Синтетический датасет и воспроизводимый скоринг</li><li>Модель: скоркарта / LightGBM с расчетом PD и Score</li><li>Расчет Explainability (SHAP / вклады весов)</li><li>Расчет безопасного лимита (<code>max_limit</code>)</li><li>Pydantic-валидация и эндпоинт <code>/score</code></li><li>Легковесный Dockerfile без тяжелых GPU/Deep Learning библиотек</li></ul><div class="fail" style="margin-top:8px"><b>Не делает:</b> не трогает БД, не принимает финальный статус, не держит LLM</div></div>
+<div class="box" style="border-top:4px solid var(--blue)"><b>Бэкенд (Django)</b><ul><li>Готовые демо-аккаунты (сид 3 профилей в БД)</li><li>Машина состояний заявки и аудит переходов</li><li>Моки внешних систем (ЕГРЮЛ, БКИ)</li><li>Экран андеррайтера (разбор пограничных заявок)</li><li>Решение конвейера: матрица переходов по скорингу</li><li>Генерация договора и эмуляция выдачи (DISBURSED)</li><li><b>Интеграция LLM (в субботу):</b> клиент к OpenAI-compatible API через .env</li></ul><div class="fail" style="margin-top:8px"><b>Не делает:</b> не считает математический риск сам, не меняет логику модели</div></div>
+</div>
+</div></body></html>

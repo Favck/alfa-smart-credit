@@ -1,0 +1,451 @@
+openapi: 3.0.3
+info:
+  title: ML Scoring & Pre-Predict Engine API
+  version: 1.3.0
+  description: >
+    Внутренний API микросервиса машинного обучения (FastAPI) кредитного конвейера Альфа-Банка.
+    Сервис полностью изолирован от БД:
+    1. /api/v1/scoring/pre-predict — ультрабыстрый эндпоинт (<30 мс) для экспресс-оценки в UI
+       на этапе перемещения ползунков суммы/срока и ввода выручки. Принимает полный ScoringRequest
+       и возвращает вероятность одобрения в процентах (0–100%).
+    2. /api/v1/scoring/evaluate — полный конвейер оценки риска (скоркарта/бустинг, стоп-факторы,
+       вероятность дефолта PD, расчет посильного лимита и веса признаков SHAP для Explainability).
+    3. /api/v1/model и /api/v1/health — служебные эндпоинты мониторинга и аудита моделей.
+
+paths:
+  /api/v1/scoring/pre-predict:
+    post:
+      summary: Экспресс-прогноз шансов на одобрение (On-the-fly Pre-predict)
+      description: >
+        Ультрабыстрый эндпоинт экспресс-скоринга для динамического интерфейса формы заявки.
+        Вызывается фронтендом через бэкенд (с debounce 300–400 мс) при перемещении ползунков
+        суммы/срока и заполнении финансовой информации.
+        Принимает единую схему ScoringRequest, возвращает вероятность одобрения в процентах
+        (0–100%), цветовую индикацию шансов (green / yellow / red / blocked), прогноз платежа,
+        DTI и готовую рекомендацию (например, увеличить срок или снизить сумму).
+      operationId: prePredictApplication
+      tags:
+        - Pre-Predictor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScoringRequest'
+      responses:
+        '200':
+          description: Экспресс-прогноз успешно рассчитан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrePredictResponse'
+        '422':
+          description: Ошибка валидации входных параметров
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервиса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalErrorResponse'
+
+  /api/v1/scoring/evaluate:
+    post:
+      summary: Полная оценка кредитного риска и расчет Explainability
+      description: >
+        Полнофункциональный конвейер оценки заявки. Вызывается бэкендом на шаге SCORING.
+        Проверяет стоп-правила (отсечка БКИ и ЕГРЮЛ), рассчитывает балл (300–850),
+        вероятность дефолта (PD), вероятность одобрения в процентах (0–100%),
+        кредитный класс (Grade A–D), безопасный лимит и взвешенный вклад каждого фактора
+        (SHAP / Scorecard weights) для экрана андеррайтера.
+      operationId: evaluateApplication
+      tags:
+        - Full Scoring
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScoringRequest'
+      responses:
+        '200':
+          description: Успешный расчет скоринга и генерация факторов Explainability
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringResponse'
+        '422':
+          description: Ошибка валидации схемы данных Pydantic
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Сбой расчета (триггер перевода заявки в REVIEW на ручной разбор)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalErrorResponse'
+
+  /api/v1/model:
+    get:
+      summary: Метаданные и версия активной скоринговой модели
+      description: Возвращает версию модели, список признаков и дату калибровки для аудита жюри.
+      operationId: getModelInfo
+      tags:
+        - Audit & System
+      responses:
+        '200':
+          description: Метаданные модели
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelInfoResponse'
+
+  /api/v1/health:
+    get:
+      summary: Проверка работоспособности сервиса (Liveness / Readiness)
+      description: Используется Docker healthcheck и мониторингом конвейера.
+      operationId: getHealthStatus
+      tags:
+        - Audit & System
+      responses:
+        '200':
+          description: Сервис готов принимать запросы
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-10-21T14:30:00Z"
+
+components:
+  schemas:
+    # --- Единая входная схема для обоих эндпоинтов ---
+    ScoringRequest:
+      type: object
+      required:
+        - request_id
+        - application_id
+        - product
+        - amount
+        - term_months
+        - company_age_months
+        - company_status
+        - okved_group
+        - monthly_revenue
+        - current_monthly_payments
+        - bki_has_history
+      properties:
+        request_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        application_id:
+          type: string
+          example: "APP-1042"
+        product:
+          type: string
+          enum:
+            - working_capital
+            - equipment_purchase
+            - investment
+            - overdraft
+          example: "working_capital"
+        amount:
+          type: integer
+          minimum: 50000
+          example: 2000000
+        term_months:
+          type: integer
+          minimum: 1
+          maximum: 120
+          example: 24
+        company_age_months:
+          type: integer
+          minimum: 0
+          example: 48
+        company_status:
+          type: string
+          enum:
+            - active
+            - liquidating
+            - liquidated
+            - bankrupt
+          example: "active"
+        okved_group:
+          type: string
+          pattern: '^[0-9]{2}$'
+          example: "10"
+          description: Двузначный код ОКВЭД (отрасль)
+        monthly_revenue:
+          type: integer
+          minimum: 0
+          example: 1200000
+        current_monthly_payments:
+          type: integer
+          minimum: 0
+          example: 40000
+        bki_has_history:
+          type: boolean
+          example: true
+        bki_overdue_count_12m:
+          type: integer
+          default: 0
+          example: 0
+        bki_max_overdue_days:
+          type: integer
+          default: 0
+          example: 0
+        bki_active_loans:
+          type: integer
+          default: 0
+          example: 1
+
+    # --- Ответ Pre-Predictor ---
+    PrePredictResponse:
+      type: object
+      required:
+        - status
+        - approval_probability_percent
+        - estimated_monthly_payment
+        - dti_forecast
+        - hint_message
+      properties:
+        status:
+          type: string
+          enum:
+            - green     # Высокая вероятность одобрения
+            - yellow    # Пограничный риск (желательно скорректировать сумму/срок)
+            - red       # Высокий риск отказа по текущим параметрам
+            - blocked   # Сработал стоп-фактор (просрочка 90+, банкротство, ликвидация)
+          example: "green"
+          description: Цветовой индикатор шансов для бейджа/прогресс-бара в UI
+        approval_probability_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 85
+          description: Вероятность одобрения в процентах (0–100%)
+        estimated_monthly_payment:
+          type: integer
+          example: 105000
+          description: Примерный аннуитетный ежемесячный платеж (руб.)
+        dti_forecast:
+          type: number
+          format: float
+          example: 0.12
+          description: Прогнозный коэффициент долговой нагрузки DTI (от 0 до 1+)
+        recommended_max_amount:
+          type: integer
+          nullable: true
+          example: 2500000
+          description: Рекомендуемая максимальная сумма для перехода в "green" статус
+        recommended_min_term_months:
+          type: integer
+          nullable: true
+          example: 24
+          description: Рекомендуемый срок для снижения платежа до безопасного уровня
+        hint_message:
+          type: string
+          example: "Отличные параметры! При выручке 1.2 млн ₽ ежемесячный платеж 105 000 ₽ не перегружает бизнес. Шанс одобрения — 85%."
+          description: Готовый понятный текст подсказки для вывода под калькулятором
+        latency_ms:
+          type: number
+          format: float
+          example: 4.8
+          description: Скорость расчета на стороне ML (мс)
+
+    # --- Ответ Full Scoring (Evaluate) ---
+    ScoringResponse:
+      type: object
+      required:
+        - request_id
+        - model_version
+        - stop_factors
+        - score
+        - pd
+        - approval_probability_percent
+        - grade
+        - reasons
+        - max_affordable_amount
+        - recommendation
+      properties:
+        request_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        model_version:
+          type: string
+          example: "risk_scorecard_v1.0"
+        stop_factors:
+          type: array
+          items:
+            type: string
+          example: []
+          description: Список сработавших стоп-факторов (если есть, score будет null)
+        score:
+          type: integer
+          nullable: true
+          minimum: 300
+          maximum: 850
+          example: 670
+          description: Итоговый балл риска
+        pd:
+          type: number
+          format: float
+          nullable: true
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.035
+          description: Вероятность дефолта (Probability of Default)
+        approval_probability_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 85
+          description: Итоговая вероятность одобрения заявки в процентах (0–100%)
+        grade:
+          type: string
+          nullable: true
+          enum:
+            - A
+            - B
+            - C
+            - D
+          example: "A"
+          description: Кредитный класс надежности заемщика
+        reasons:
+          type: array
+          minItems: 5
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/ScoreFactorReason'
+          description: >
+            Строго топ-5 факторов влияния (SHAP Waterfall / скоркарта) для визуализации
+            на экране андеррайтера и в кабинете заемщика (положительные и отрицательные вклады).
+          example:
+            - factor: "bki_history"
+              impact: 60
+              text: "Положительная история в БКИ: нет текущих и исторических просрочек"
+            - factor: "company_age"
+              impact: 40
+              text: "Устойчивый стаж бизнеса: компания на рынке более 4 лет"
+            - factor: "dti_ratio"
+              impact: -40
+              text: "Долговая нагрузка выше нормы: платежи по кредитам превышают 30% выручки"
+            - factor: "loan_term"
+              impact: -15
+              text: "Повышенный риск из-за длинного горизонта кредитования (24 мес.)"
+            - factor: "revenue_stability"
+              impact: 25
+              text: "Высокая стабильность ежемесячной выручки по данным оборотов"
+        max_affordable_amount:
+          type: integer
+          nullable: true
+          example: 2400000
+          description: Максимальный безопасный лимит кредитования
+        recommendation:
+          type: string
+          enum:
+            - approve
+            - counter
+            - reject
+          example: "approve"
+          description: Подсказка для конвейера (финальный статус ставит бэкенд)
+        latency_ms:
+          type: number
+          format: float
+          example: 18.4
+
+    ScoreFactorReason:
+      type: object
+      required:
+        - factor
+        - impact
+        - text
+      properties:
+        factor:
+          type: string
+          example: "bki_history"
+          description: Кодовое имя фактора
+        impact:
+          type: integer
+          example: 60
+          description: Вклад фактора в балл (+60, -40 и т.д.)
+        text:
+          type: string
+          example: "Положительная история в БКИ: нет текущих и исторических просрочек"
+          description: Текст объяснения для клиента и аналитика
+
+    ModelInfoResponse:
+      type: object
+      required:
+        - model_name
+        - model_version
+        - algorithm
+        - features_count
+        - latency_p95_ms
+      properties:
+        model_name:
+          type: string
+          example: "alfa_mmb_risk_engine"
+        model_version:
+          type: string
+          example: "1.0.0"
+        algorithm:
+          type: string
+          example: "LogisticRegression Scorecard + SHAP Explainability"
+        features_count:
+          type: integer
+          example: 14
+        latency_p95_ms:
+          type: number
+          example: 22.5
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - error
+        - details
+      properties:
+        error:
+          type: string
+          example: "Validation Error"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "amount"
+              message:
+                type: string
+                example: "Сумма должна быть не менее 50 000 ₽"
+
+    InternalErrorResponse:
+      type: object
+      required:
+        - error
+        - request_id
+        - message
+      properties:
+        error:
+          type: string
+          example: "Internal Scoring Failure"
+        request_id:
+          type: string
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        message:
+          type: string
+          example: "Ошибка расчета риска в модуле скоринга"

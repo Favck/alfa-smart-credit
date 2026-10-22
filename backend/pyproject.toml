@@ -1,0 +1,12 @@
+[tool.black]
+line-length = 79
+target-version = ["py311"]
+extend-exclude = '/(\.venv|data)/'
+
+[tool.isort]
+profile = "black"
+line_length = 79
+py_version = 311
+src_paths = ["."]
+known_first_party = ["api", "config"]
+extend_skip = [".venv", "data"]

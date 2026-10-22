@@ -1,0 +1,23 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      DJANGO_DEBUG: "true"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,[::1]"
+      DEMO_MODE: "true"
+    volumes:
+      - backend_data:/app/data
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:5173:5173"
+    environment:
+      API_PROXY_TARGET: "http://backend:8000"
+    depends_on:
+      - backend
+
+volumes:
+  backend_data:

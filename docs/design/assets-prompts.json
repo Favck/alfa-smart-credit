@@ -1,0 +1,30 @@
+{
+  "mode": "built-in image_gen",
+  "assets": [
+    {
+      "slug": "hero-card",
+      "prompt": "Premium photorealistic 3D product render for a contemporary Alfa-Bank-style Russian business finance website. One luxurious vivid red satin-metal business bank card floating tilted about -14 degrees in perspective, small white Cyrillic А mark and white underline in upper left, small elegant «альфа.поток» in top right, a brushed-silver EMV chip at lower right. A large polished silver chrome open oval ring curves behind and around the card, with two small translucent clear glass rounded squares and a subtle little red glass block. Exquisite realistic material textures, soft studio lighting, red reflections on chrome, restrained premium advertising CGI. Composition object concentrated center-right with generous transparent margin, landscape composition. Isolated objects on a genuinely transparent background, no backdrop plane, no scene, no interface or website, no other text, no slogans, no people, no watermark. Whole card and ring visible, not cut off. Red #EF3124, silver, crystal, white only.",
+      "path": "frontend/public/images/hero-card.png"
+    },
+    {
+      "slug": "product-growth",
+      "prompt": "A premium realistic 3D sculptural icon for an Alfa-Bank-style business lending website: a glossy vivid red upward-curving growth arrow climbing over three ascending brushed silver rectangular blocks, the tallest block is red. Beautiful smooth beveled edges, subtle realistic studio highlights and red reflections, confident refined banking product CGI. Object isolated centered on a genuinely transparent background, square composition, whole shape visible with padding, no floor background, no text, no letters, no logos, no people. Palette #EF3124 red and brushed silver only. View slightly from front and above, elegant object large enough for product card.",
+      "path": "frontend/public/images/product-growth.png"
+    },
+    {
+      "slug": "product-equipment",
+      "prompt": "A premium photorealistic 3D sculptural icon for an Alfa-Bank-style small-business equipment loan website card. A precise architectural arrangement of three ascending brushed silver rectangular metal blocks with beautifully beveled edges; behind them one taller vivid red polished glass rectangular block with a triangular diagonal bevel at its top corner. Minimal expensive industrial product design, studio lighting, crisp detail, realistic red reflections on silver, subtle contact shadow. Isolated on a genuinely transparent background, square composition, complete object with padding, no room or floor backdrop, no interface, no labels, no logos, no letters, no people. Colors #EF3124 red, brushed chrome and crystal only.",
+      "path": "frontend/public/images/product-equipment.png"
+    },
+    {
+      "slug": "product-overdraft",
+      "prompt": "One extremely refined photorealistic 3D sculptural banking product icon: an upright thick segmented circular metal ring, three quarters polished brushed silver and one quarter translucent vivid red glass, like a solid elegant financial reserve ring, resting with a subtle contact shadow. Slight three-quarter perspective, sophisticated premium Alfa-Bank-style banking advertisement CGI, realistic studio reflections, beveled edges, lovely red reflections on silver. Object completely visible and centered with padding on a genuinely transparent background, square composition. No background scene, no floor plane, no chart labels, no percentages, no text, no letters, no logos. Palette brushed silver and #EF3124 red glass only.",
+      "path": "frontend/public/images/product-overdraft.png"
+    },
+    {
+      "slug": "bakery-story",
+      "prompt": "Premium editorial lifestyle photograph for the lower-right story card of a Russian small-business bank website. A beautiful warm artisan bakery counter, two golden flaky croissants and a sliced sourdough loaf on a natural cream ceramic plate in foreground, a white ceramic coffee cup with perfect cappuccino foam at right, sunlit blurred modern bakery interior with subtle dried flowers and clean natural materials. Quiet sophisticated candid commercial photography, soft morning window light, tactile realistic texture, shallow depth of field, warm cream beige caramel palette with small muted red detail. Wide landscape composition, food concentrated in right two-thirds and left third quiet bright cream negative space suitable for website overlay text. No text or logos or brand labels, no watermark, no people. Full rectangular opaque photograph.",
+      "path": "frontend/public/images/bakery-story.png"
+    }
+  ]
+}
