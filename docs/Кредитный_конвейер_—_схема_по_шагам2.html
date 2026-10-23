@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Кредитный конвейер — схема по шагам | Альфа-Банк Хакатон</title>
+<style>
+:root{--bg:#f1f1f2;--card:#fff;--tx:#141414;--mu:#6b6b72;--ln:#e3e3e6;--red:#ef3124;--lime:#a8f000;--pur:#9b33ff;--blue:#0055ff;--amber:#f59e0b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17171a;--card:#222226;--tx:#f4f4f5;--mu:#9a9aa3;--ln:#34343a}}
+*{box-sizing:border-box}html{color-scheme:light dark}
+body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx)}
+.top{background:var(--red);color:#fff;padding:28px 20px}.top h1{margin:0 auto;max-width:1020px;font-size:28px;letter-spacing:-.5px}
+.top p{max-width:1020px;margin:6px auto 0;opacity:.9}
+main{max-width:1020px;margin:0 auto;padding:18px 16px 40px}
+h2{margin:28px 0 10px;font-size:20px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mu)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;background:var(--c)}
+.step{display:grid;grid-template-columns:54px 1fr;gap:12px;margin-bottom:6px}
+.num{display:flex;flex-direction:column;align-items:center}
+.num b{width:44px;height:44px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:19px}
+.num i{flex:1;width:3px;background:var(--ln);margin-top:4px}
+.box{background:var(--card);border:1px solid var(--ln);border-radius:20px;padding:18px;margin-bottom:14px}
+.box h3{margin:0 0 4px;font-size:18px}
+.who{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;color:#fff;margin-bottom:8px}
+.cl{background:var(--blue)}.bk{background:var(--pur)}.sy{background:#16a34a}.ml{background:var(--amber);color:#000}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:10px}
+.cell{border-radius:14px;padding:12px;background:var(--bg);font-size:14px}
+.cell small{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--mu);margin-bottom:4px;font-weight:700}
+.cell ul{margin:0;padding-left:18px}
+.in{outline:2px dashed var(--blue)}.st{outline:2px solid var(--lime)}
+.hk{margin-top:10px;background:rgba(239,49,36,.09);border-left:4px solid var(--red);border-radius:10px;padding:9px 12px;font-size:13.5px}
+.hk b{color:var(--red)}
+.note{margin-top:10px;background:rgba(155,51,255,.09);border-left:4px solid var(--pur);border-radius:10px;padding:9px 12px;font-size:13.5px}
+.note b{color:var(--pur)}
+code{background:var(--bg);padding:1px 6px;border-radius:6px;font-size:13px}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}
+.flow span{background:var(--card);border:1px solid var(--ln);padding:5px 11px;border-radius:99px;font-weight:600}
+.flow .a{background:var(--lime);color:#000;border-color:var(--lime)}.flow .r{background:var(--red);color:#fff;border-color:var(--red)}.flow .m{background:var(--pur);color:#fff;border-color:var(--pur)}.flow .g{background:var(--mu);color:#fff;border-color:var(--mu)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:10px}
+.scenario-card{border:1px solid var(--ln);border-radius:12px;padding:12px;background:var(--bg)}
+.scenario-card h4{margin:0 0 4px;font-size:14px}
+.scenario-card.green{border-left:4px solid #16a34a}
+.scenario-card.yellow{border-left:4px solid var(--amber)}
+.scenario-card.red{border-left:4px solid var(--red)}
+.chk{margin:0;padding-left:20px}.chk li{margin:3px 0}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:7px 8px;border-bottom:1px solid var(--ln);text-align:left}th{color:var(--mu);font-size:12px}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.badge-green{background:#dcfce7;color:#166534}
+.badge-yellow{background:#fef3c7;color:#92400e}
+.badge-red{background:#fee2e2;color:#991b1b}
+</style></head><body>
+<div class="top"><h1>Умный кредитный кабинет — схема по шагам</h1><p>Сквозной процесс: клиентский путь, андеррайтинг, скоринг, оркестрация и соответствие критериям Альфа-Банка.</p></div>
+<main>
+<div class="legend"><span style="--c:var(--blue)">Клиент (веб-кабинет)</span><span style="--c:var(--pur)">Сотрудник банка (андеррайтер)</span><span style="--c:#16a34a">Система / моки</span><span style="--c:var(--amber)">ML / Скоринг</span><span style="--c:var(--red)">Требование хакатона</span></div>
+
+<h2>Статусы заявки (диаграмма состояний — обязательна в репозитории)</h2>
+<div class="box"><div class="flow">
+<span>DRAFT</span>→<span class="a">SUBMITTED</span>→<span class="a">CHECK</span>→<span class="a">ENRICH</span>→<span class="a">SCORING</span>→<span class="a">REVIEW</span>→
+<span class="a">APPROVED</span>/<span class="m">COUNTER_OFFER</span>/<span class="m">NEED_INFO</span>/<span class="r">REJECTED</span>→<span class="a">SIGNING</span>→<span class="a">DISBURSED</span>
+<span style="margin-left:8px;opacity:.6">|</span> <span class="g">CANCELLED</span></div>
+<p class="hk" style="margin-bottom:0"><b>Ключевые нюансы переходов:</b><br>
+• <b>NEED_INFO:</b> при догрузке данных заявка возвращается сразу в <b>ENRICH / REVIEW</b> (с сохранением контекста и обогащенных признаков, без сброса на первичную проверку формы).<br>
+• <b>COUNTER_OFFER:</b> клиент согласен → <b>SIGNING</b> → <b>DISBURSED</b>; клиент отказался от встречных условий → <b>CANCELLED</b> (финальный статус отмены).<br>
+• Каждый переход строго логируется в таблицу аудита <code>StatusHistory</code>.</p></div>
+
+<h2>Путь по шагам</h2>
+
+<div class="step"><div class="num"><b>0</b><i></i></div><div class="box">
+<span class="who cl">Клиент</span><h3>Выбор готового демо-аккаунта (действующий бизнес)</h3>
+<div class="cols"><div class="cell in"><small>Действие пользователя</small><ul><li>Выбор одной из 3 тестовых компаний в 1 клик</li><li>Либо быстрый ввод тестового логина/пароля</li><li>Регистрация «с нуля» отключена</li></ul></div>
+<div class="cell"><small>Система</small><ul><li>Мгновенно авторизует, подтягивает профиль</li><li>Предзаполняет реквизиты компании и баланс счета</li><li>Показывает персональную ленту / дашборд</li></ul></div>
+<div class="cell st"><small>Данные (в БД)</small><ul><li>User, Company (ИНН, ОГРН, ОКВЭД, счета, выручка)</li></ul></div></div>
+
+<div class="grid3">
+<div class="scenario-card green">
+<h4>🟢 ООО «Пекарня Зерно» <span class="badge badge-green">Зеленый</span></h4>
+<div style="font-size:12.5px;color:var(--mu)">ИНН: 7701234567 | Выручка: 1.5 млн ₽/мес</div>
+<div style="margin-top:6px;font-size:13px">Действующий бизнес (4 года), чистая кредитная история в БКИ, низкая нагрузка → <b>Автоодобрение (APPROVED)</b></div>
+</div>
+<div class="scenario-card yellow">
+<h4>🟡 ИП Смирнов А.В. <span class="badge badge-yellow">Желтый</span></h4>
+<div style="font-size:12.5px;color:var(--mu)">ИНН: 7802345678 | Выручка: 600 тыс ₽/мес</div>
+<div style="margin-top:6px;font-size:13px">Высокая долговая нагрузка, пограничный скоринговый балл → <b>Ручной андеррайтинг (REVIEW)</b> / Встречные условия</div>
+</div>
+<div class="scenario-card red">
+<h4>🔴 ООО «СтройВектор» <span class="badge badge-red">Красный</span></h4>
+<div style="font-size:12.5px;color:var(--mu)">ИНН: 5003456789 | Выручка: 300 тыс ₽/мес</div>
+<div style="margin-top:6px;font-size:13px">Стоп-фактор в БКИ (просрочка 90+ дней) или метка ликвидации в ЕГРЮЛ → <b>Мотивированный отказ (REJECTED)</b></div>
+</div>
+</div>
+
+<div class="hk"><b>Хакатон:</b> по условиям кейса заемщик — уже действующий предприниматель банка. Не тратим время на SMS, верификацию email и капчи. Готовые аккаунты сидируются в БД и дают экспертам жюри мгновенную автономную проверку всех 3 обязательных веток конвейера.</div></div></div>
+
+<div class="step"><div class="num"><b>1</b><i></i></div><div class="box">
+<span class="who cl">Клиент</span><h3>Потребность и выбор продукта</h3>
+<div class="cols"><div class="cell in"><small>Вводит / выбирает</small><ul><li>Цель: пополнение оборотки, закупка оборудования, закрытие кассового разрыва</li><li>Выбор продукта из каталога (Овердрафт, Оборотный, Инвестиционный)</li></ul></div>
+<div class="cell"><small>Интерфейс</small><ul><li>Карточки понятным языком с диапазонами сумм и сроков</li><li>Рыночные ставки с привязкой к ключевой ставке ЦБ РФ</li><li>AI-помощник: подбор продукта по описанию потребности</li></ul></div>
+<div class="cell st"><small>Данные</small><ul><li>Product: лимиты, базовая ставка (рыночная), требования</li></ul></div></div>
+<div class="hk"><b>Хакатон:</b> ставки должны соответствовать рыночным реалиям (учитывать ключевую ставку ЦБ РФ; нереалистичные 0.5% недопустимы). AI-подбор базируется на <b>Open-Weights LLM</b> (до 120B параметров), подключенной через OpenAI-compatible API через <code>.env</code>.</div></div></div>
+
+<div class="step"><div class="num"><b>2</b><i></i></div><div class="box">
+<span class="who cl">Клиент</span><h3>Заполнение заявки</h3>
+<div class="cols"><div class="cell in"><small>Вводит</small><ul><li>Сумма, срок, текстовое уточнение цели</li><li>Заявленная выручка и текущие платежи по кредитам</li><li>Загрузка выписки по счету (PDF / Excel, опционально)</li></ul></div>
+<div class="cell"><small>Система</small><ul><li>Автоматически подтягивает реквизиты компании из профиля</li><li>Валидирует лимиты продукта на лету</li><li>Автосохраняет черновик</li></ul></div>
+<div class="cell st"><small>Статус</small><ul><li>DRAFT → после нажатия «Отправить» → SUBMITTED</li></ul></div></div>
+<table style="margin-top:12px"><tr><th>Поле</th><th>Пример</th><th>Откуда берётся</th><th>Зачем</th></tr><tr><td>Название, ИНН, ОГРН, адрес</td><td>ООО «Пекарня Зерно»</td><td>Авто из профиля компании</td><td>Клиент не вводит повторно</td></tr><tr><td>Сумма</td><td>2 000 000 ₽</td><td>Вводит клиент</td><td>Главный параметр кредита</td></tr><tr><td>Срок</td><td>24 мес.</td><td>Вводит клиент</td><td>Расчет графика и риска дефолта</td></tr><tr><td>Цель</td><td>Закупка печей и муки</td><td>Выбор + текст клиента</td><td>Подбор условий и контекст для банка</td></tr><tr><td>Выручка в месяц</td><td>1 500 000 ₽</td><td>Вводит клиент / из истории счёта</td><td>Расчет коэффициента долговой нагрузки (DTI)</td></tr><tr><td>Текущие платежи по кредитам</td><td>40 000 ₽/мес</td><td>Вводит клиент</td><td>Оценка чистого денежного потока</td></tr><tr><td>Выписка по счёту</td><td>statement.pdf / xlsx</td><td>Загружает клиент (опционально)</td><td>Анализ оборотов и кассовых разрывов</td></tr></table>
+<div class="hk"><b>Хакатон:</b> данные сохраняются один раз и не запрашиваются повторно на последующих экранах (правило Single Data Entry).</div></div></div>
+
+<div class="step"><div class="num"><b>3</b><i></i></div><div class="box">
+<span class="who sy">Система</span><h3>Приём и проверка полноты (CHECK)</h3>
+<div class="cols"><div class="cell"><small>Что делает бэкенд</small><ul><li>Проверяет заполненность обязательных полей</li><li>Проверяет попадание суммы/срока в лимиты продукта</li><li>Приводит данные к единой схеме</li></ul></div>
+<div class="cell"><small>Исходы</small><ul><li>Всё корректно → переход в <b>ENRICH</b></li><li>Не хватает данных → <b>NEED_INFO</b> с перечнем недостающих полей</li></ul></div>
+<div class="cell st"><small>Клиент видит</small><ul><li>Экран таймлайна: «Заявка принята в обработку»</li></ul></div></div>
+<div class="hk"><b>Хакатон:</b> автоматическая валидация на полноту и корректность до запуска тяжелых скоринговых вычислений.</div></div></div>
+
+<div class="step"><div class="num"><b>4</b><i></i></div><div class="box">
+<span class="who sy">Система (моки)</span><h3>Обогащение данными (ENRICH)</h3>
+<div class="cols"><div class="cell"><small>Источники (детерминированные моки)</small><ul><li>ЕГРЮЛ: статус (действует/ликвидируется), возраст, ОКВЭД</li><li>«Прозрачный бизнес»: массовый адрес, дисквалификация руководства</li><li>БКИ: объем обязательств, число закрытых кредитов, просрочки (0 / 30 / 90+)</li></ul></div>
+<div class="cell"><small>Реализация</small><ul><li>Локальные JSON-симуляторы по ИНН заемщика</li><li>Мгновенный детерминированный ответ без внешних зависимостей</li></ul></div>
+<div class="cell st"><small>Данные</small><ul><li>Объект <code>EnrichmentResult</code> фиксируется в БД заявки</li></ul></div></div>
+<div class="hk"><b>Хакатон:</b> реальные АБС и платные сервисы (ФНС, платное БКИ) запрещены. Все внешние контуры эмулируются локальными стабами, зафиксированными в <code>THIRD_PARTY_NOTICES</code>.</div></div></div>
+
+<div class="step"><div class="num"><b>5</b><i></i></div><div class="box">
+<span class="who ml">ML / Скоринг (FastAPI)</span><h3>Скоринг и оценка риска (SCORING)</h3>
+<div class="cols"><div class="cell"><small>Факторы оценки</small><ul><li>Долговая нагрузка (DTI): платежи / выручка</li><li>Возраст бизнеса (стаж) и стабильность ОКВЭД</li><li>Качество кредитной истории (просрочки БКИ)</li><li>Параметры запроса (сумма, срок, продукт)</li></ul></div>
+<div class="cell"><small>Модель и Explainability</small><ul><li>Скоринговая модель (скоркарта / LightGBM)</li><li>Расчет вероятности дефолта (PD) и балла (300–850)</li><li><b>SHAP / веса признаков:</b> топ-3…5 драйверов скора с понятным текстом</li><li>Расчет максимальной посильной суммы</li></ul></div>
+<div class="cell st"><small>Результат для бэкенда</small><ul><li><code>score</code>, <code>pd</code>, <code>stop_factors</code>, <code>reasons</code>, <code>max_limit</code></li><li>Скоринг дает оценку риска, но <b>не ставит финальный статус</b></li></ul></div></div>
+<div class="hk"><b>Хакатон:</b> четкое разделение скоринга (математика риска) и кредитного решения (бизнес-логика). Объяснимость (Explainability) — обязательное требование банка.</div></div></div>
+
+<div class="step"><div class="num"><b>6</b><i></i></div><div class="box">
+<span class="who bk">Сотрудник банка / Кредитный конвейер</span><h3>Кредитное решение и Кабинет андеррайтера (REVIEW)</h3>
+<table><tr><th>Категория</th><th>Критерий</th><th>Режим принятия</th><th>Действие конвейера / Андеррайтера</th></tr>
+<tr><td><b>Автоодобрение</b></td><td>Score ≥ 620, стоп-факторов нет</td><td>Автоматически</td><td>Переход в <b>APPROVED</b>, формирование оффера клиенту</td></tr>
+<tr><td><b>Пограничный кейс</b></td><td>Score 520–619 или крупная сумма</td><td><b>Кабинет андеррайтера</b></td><td>Аналитик смотрит Explainability → Одобрить / Снизить сумму (<b>COUNTER_OFFER</b>) / Запросить данные (<b>NEED_INFO</b>)</td></tr>
+<tr><td><b>Отказ</b></td><td>Score &lt; 520 или стоп-фактор (просрочка 90+, банкротство)</td><td>Автоматически / Подтверждение</td><td>Переход в <b>REJECTED</b> с мотивированной причиной простым языком</td></tr></table>
+
+<div class="note" style="margin-top:12px">
+<b>Функционал экрана андеррайтера (Кабинет сотрудника банка):</b>
+<ul class="chk" style="margin-top:6px">
+<li>Очередь поступивших заявок с фильтрацией по статусам и уровню риска</li>
+<li>Детальная карточка: анкета + выписка + данные моков ЕГРЮЛ и БКИ</li>
+<li><b>Блок Explainability:</b> наглядный график вкладов факторов (зеленые плюсы и красные минусы к баллу)</li>
+<li>Кнопки принятия решения: «Одобрить», «Встречное предложение» (коррекция суммы/срока), «Запрос документов», «Отклонить» (с обязательным текстовым обоснованием)</li>
+</ul>
+</div>
+<div class="hk"><b>Хакатон:</b> наличие полноценного интерфейса сотрудника банка — прямое требование экспертов. Автоматизация приветствуется, но ручной андеррайтинг на пограничных заявках отражает реальную практику банка.</div></div></div>
+
+<div class="step"><div class="num"><b>7</b><i></i></div><div class="box">
+<span class="who cl">Клиент</span><h3>Решение банка и реакция клиента</h3>
+<div class="cols"><div class="cell in"><small>Действия клиента</small><ul><li><b>APPROVED:</b> видит одобренные параметры (сумма, срок, ставка, график) → переход к подписанию</li><li><b>COUNTER_OFFER:</b> видит скорректированную сумму/срок → Принять (→ SIGNING) или Отказаться (→ CANCELLED)</li><li><b>NEED_INFO:</b> видит запрос андеррайтера → догружает выписку → возврат в ENRICH/REVIEW</li><li><b>REJECTED:</b> видит понятные причины отказа (без банковского жаргона)</li></ul></div>
+<div class="cell st"><small>Статусы</small><ul><li>SIGNING, CANCELLED, REJECTED или возврат в REVIEW</li></ul></div></div></div></div>
+
+<div class="step"><div class="num"><b>8</b></div><div class="box">
+<span class="who sy">Система (мок)</span><h3>Подписание договора и зачисление средств</h3>
+<div class="cols"><div class="cell in"><small>Клиент</small><ul><li>Просматривает сгенерированный договор</li><li>Подтверждает согласие (имитация ПЭП: чекбокс согласия / ввод демо-кода)</li></ul></div>
+<div class="cell"><small>Система</small><ul><li>Генерирует PDF-договор с факсимиле и отметкой ПЭП</li><li>Имитирует проводку зачисления кредитных средств на расчетный счет</li></ul></div>
+<div class="cell st"><small>Статус</small><ul><li><b>DISBURSED</b> (Кредит выдан), запись в историю аудита</li></ul></div></div>
+<div class="hk"><b>Хакатон:</b> сценарий завершается экраном с фактом успешного подписания и перечисления денег. Полноценное сопровождение (графики на 2 года, расчет пени, транши) не требуется.</div></div></div>
+
+<h2>Данные и архитектура сущностей в БД</h2>
+<div class="box"><p style="margin-top:0">Хранение организовано через реляционную модель Django ORM с единым источником правды для статуса заявки:</p>
+<table><tr><th>Сущность (Таблица)</th><th>Что хранит</th><th>Кто и когда создает</th></tr>
+<tr><td><b>User</b></td><td>Логин (email), хэш пароля, ФИО, роль (клиент / андеррайтер)</td><td>Сидируется в БД (тестовые аккаунты)</td></tr>
+<tr><td><b>Company</b></td><td>ИНН, ОГРН, название, ОКВЭД, адрес, дата регистрации, счета</td><td>Сидируется в БД / мок ЕГРЮЛ</td></tr>
+<tr><td><b>Product</b></td><td>Каталог: лимиты сумм и сроков, формула ставки от ключевой ставки ЦБ</td><td>Справочник в БД</td></tr>
+<tr><td><b>Application</b></td><td>Заявка: запрошенная сумма, срок, выручка, текущий статус</td><td>Создает клиент, обновляет конвейер</td></tr>
+<tr><td><b>Enrichment</b></td><td>Сырые и структурированные ответы моков ЕГРЮЛ, «Прозрачного бизнеса», БКИ</td><td>Система на шаге ENRICH</td></tr>
+<tr><td><b>ScoreResult</b></td><td>Итоговый скоринговый балл, PD, стоп-факторы, вектор вкладов признаков (Explainability)</td><td>ML-сервис на шаге SCORING</td></tr>
+<tr><td><b>Decision</b></td><td>Решение: вердикт (approve/counter/need_info/reject), обоснование, автор (система/андеррайтер)</td><td>Кредитный конвейер / Андеррайтер</td></tr>
+<tr><td><b>Offer</b></td><td>Итоговые кредитные условия: сумма, срок, персональная ставка, аннуитетный платеж</td><td>Система после решения</td></tr>
+<tr><td><b>Document</b></td><td>Файлы: загруженная выписка (pdf/xlsx), сгенерированный договор кредитования</td><td>Клиент / Генератор договоров</td></tr>
+<tr><td><b>StatusHistory</b></td><td>Неизменяемый журнал аудита: «Timestamp | Статус_ДО → Статус_ПОСЛЕ | Кто изменил | Причина»</td><td>Система при каждом переходе</td></tr></table>
+<div class="hk"><b>Архитектурное правило:</b> статус заявки меняется строго по машине состояний. Прямые произвольные апдейты статуса запрещены.</div></div>
+
+<h2>Две проекции системы</h2>
+<div class="grid2">
+<div class="box"><span class="who cl">Кабинет клиента (Предприниматель)</span><ul class="chk">
+<li>Быстрый вход под готовыми демо-компаниями</li>
+<li>Каталог кредитных продуктов с рыночными ставками</li>
+<li>Форма подачи заявки с автоподтягиванием реквизитов</li>
+<li>Интерактивный таймлайн движения заявки</li>
+<li>Экран решения: принятие оффера / согласование встречных условий</li>
+<li>Просмотр и подписание договора (ПЭП) с экраном успешного зачисления</li>
+</ul></div>
+<div class="box"><span class="who bk">Кабинет сотрудника банка (Андеррайтер)</span><ul class="chk">
+<li>Дашборд и очередь заявок в статусе ручного разбора (REVIEW)</li>
+<li>Полный профиль заемщика: анкета + финансовые маркеры + БКИ</li>
+<li><b>Инструмент Explainability:</b> расшифровка весов и драйверов риска</li>
+<li>Панель управления решением: Одобрить / Контроффер / Запрос данных / Отказ</li>
+<li>Аудит-лог действий по каждой кредитной сделке</li>
+</ul></div></div>
+
+<h2>Технические требования и инфраструктурные ограничения</h2>
+<div class="box"><div class="grid2">
+<div>
+<h4 style="margin:0 0 6px">Ограничения хакатона</h4>
+<ul class="chk">
+<li><b>Веб-интерфейс:</b> десктопная версия обязательна (мобильная адаптация — бонус)</li>
+<li><b>Автономность:</b> без SMS, email, звонков и внешних платных API</li>
+<li><b>Потребление RAM:</b> стенд в Docker должен укладываться в <b>до 12 ГБ RAM</b> (без весов LLM)</li>
+<li><b>Развертывание:</b> запуск всего контура одной командой <code>docker compose up</code></li>
+</ul>
+</div>
+<div>
+<h4 style="margin:0 0 6px">Требования к LLM (AI-модуль)</h4>
+<ul class="chk">
+<li><b>Open-Weights only:</b> открытые модели (Llama 3, Mistral, Qwen и др. до 120B параметров)</li>
+<li><b>OpenAI-compatible API:</b> вынос в <code>.env</code> переменных <code>LLM_BASE_URL</code>, <code>LLM_API_KEY</code>, <code>LLM_MODEL_NAME</code></li>
+<li><b>Роль LLM:</b> реактивный ассистент по продуктам и генерация текстового саммари рисков для андеррайтера</li>
+</ul>
+</div>
+</div></div>
+
+<h2>План реализации к защите</h2>
+<div class="box"><div class="grid2">
+<div class="scenario-card green">
+<h4>Этап 1: Ядро конвейера (До пятницы)</h4>
+<ul class="chk" style="font-size:13px">
+<li>[x] Убрать регистрацию «с нуля», сделать 3 готовых демо-аккаунта (Зеленый / Желтый / Красный)</li>
+<li>[x] Реализовать сквозную машину состояний: DRAFT → SUBMITTED → CHECK → ENRICH → SCORING → REVIEW → SIGNING → DISBURSED</li>
+<li>[x] Настроить корректные переходы: NEED_INFO (без сброса контекста), COUNTER_OFFER (ветка CANCELLED)</li>
+<li>[x] Разработать экран андеррайтера с визуализацией факторов Explainability</li>
+<li>[x] Упаковать сервисы (Django, FastAPI, БД, Фронтенд) в Docker Compose с лимитом RAM до 12 ГБ</li>
+</ul>
+</div>
+<div class="scenario-card yellow">
+<h4>Этап 2: AI-надстройка и полировка (Суббота)</h4>
+<ul class="chk" style="font-size:13px">
+<li>[ ] Подключить Open-Weights LLM через OpenAI-compatible эндпоинт (.env)</li>
+<li>[ ] Встроить AI-ассистента в клиентский кабинет для помощи с выбором продукта</li>
+<li>[ ] Добавить автогенерацию резюме заявки языковой моделью для андеррайтера</li>
+<li>[ ] Оформить документацию (README, C4-схемы, OpenAPI/Swagger, THIRD_PARTY_NOTICES)</li>
+<li>[ ] Провести финальный «холодный тест» развертывания с чистого листа</li>
+</ul>
+</div>
+</div></div>
+
+<h2>Что сдавать в репозитории</h2>
+<div class="box"><div class="grid2"><ul class="chk"><li>GitHub + commit hash / релизный тег к дедлайну</li><li>Доступ для аккаунта <code>alfa-hack-2026</code></li><li><code>docker-compose.yml</code> и lock-файлы зависимостей</li><li><code>README.md</code>: пошаговый запуск, архитектура, .env, сценарии проверки</li></ul>
+<ul class="chk"><li><code>THIRD_PARTY_NOTICES</code> с перечислением моков</li><li>Архитектурные схемы (C4) и модель данных (ERD)</li><li>Спецификация OpenAPI/Swagger + коллекция запросов</li><li>Диаграмма состояний и учетные записи 3 демо-пользователей</li></ul></div>
+<p class="hk" style="margin-bottom:0"><b>Критерии оценки жюри:</b> стабильность запуска, целостность сквозного сценария (End-to-End), объяснимость скоринга (Explainability), качество UX/UI и enterprise-подход к безопасности и аудиту.</p></div>
+</main></body></html>
