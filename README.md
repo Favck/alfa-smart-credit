@@ -1,6 +1,6 @@
 # Альфа.Поток
 
-Репозиторий: https://github.com/VoltusV5/alfa-potok (приватный).
+Репозиторий: https://github.com/Favck/alfa-smart-credit.
 
 Базовый backend для хакатона: Django 5.2, Django REST Framework, SQLite и Swagger UI.
 Frontend перенесён на Vue 3 и Vite в `frontend/`. Материалы хакатона находятся

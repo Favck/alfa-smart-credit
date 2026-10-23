@@ -1,5 +1,11 @@
 # Production: https://alpha.srv-node.com
 
+Репозиторий: https://github.com/Favck/alfa-smart-credit.
+CI/CD: https://github.com/Favck/alfa-smart-credit/actions.
+
+После переноса репозитория серверные имена `alfa-potok`, каталог данных,
+домен и учётные записи сохранены. Секреты деплоя настроены в новом репозитории.
+
 Push в `main` запускает `.github/workflows/deploy.yml`: pytest, Django check,
 проверка миграций, сборка Vue, сборка двух production-образов и доставка
 по SSH. Pull request выполняет проверки и сборки без деплоя.
