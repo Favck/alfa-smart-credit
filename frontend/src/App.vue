@@ -525,7 +525,7 @@ onMounted(() => {
     <footer class="site-footer">
       <span>© 2026 Альфа.Поток</span
       ><span>Создано для бизнеса. Разработано для хакатона.</span
-      ><span>Демонстрационный прототип</span>
+      ><span>ITigers · Кредитный кабинет</span>
     </footer>
   </div>
 </template>

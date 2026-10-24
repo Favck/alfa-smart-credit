@@ -1806,7 +1806,7 @@ components:
         monthly_payment:
           type: integer
           nullable: true
-          description: Для овердрафта способ расчёта ещё не согласован.
+          description: Для овердрафта платёж зависит от использования лимита.
         explanation:
           type: string
         status:

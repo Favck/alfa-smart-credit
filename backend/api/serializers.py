@@ -225,7 +225,7 @@ class Offer(s.Serializer):
     annual_rate_percent = s.DecimalField(max_digits=5, decimal_places=2)
     monthly_payment = s.IntegerField(
         allow_null=True,
-        help_text="Для овердрафта способ расчёта ещё не согласован.",
+        help_text="Для овердрафта платёж зависит от использования лимита.",
     )
     explanation = s.CharField()
     status = s.ChoiceField(choices=["pending", "accepted", "declined"])

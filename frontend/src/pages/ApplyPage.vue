@@ -226,7 +226,7 @@ onBeforeUnmount(() => {
           <template v-else-if="preview"
             ><div class="ml-probability">
               {{ preview.approval_probability_percent
-              }}<span>% · оценка 100 − PD</span>
+              }}<span>% · оценка модели</span>
             </div>
             <p>{{ preview.hint_message }}</p>
             <p v-if="preview.recommended_max_amount">
