@@ -35,9 +35,25 @@ jobs:
       - name: Test backend
         run: |
           pip install -r backend/requirements-dev.txt
-          python -m pytest
           python backend/manage.py check
           python backend/manage.py makemigrations --check --dry-run
+          python backend/manage.py spectacular --validate --fail-on-warn --file /tmp/openapi.yaml
+      - name: Build unchanged ML service and run integration tests
+        env:
+          ML_INTEGRATION: "1"
+          ML_BASE_URL: http://127.0.0.1:8001
+        run: |
+          docker build -t "alfa-potok-ml:$GITHUB_SHA" ml
+          docker run -d --name alfa-ml-ci --memory=384m --cpus=1 \
+            -e OMP_NUM_THREADS=1 -e OPENBLAS_NUM_THREADS=1 \
+            -p 127.0.0.1:8001:8001 "alfa-potok-ml:$GITHUB_SHA"
+          trap 'docker logs --tail 60 alfa-ml-ci; docker rm -f alfa-ml-ci' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8001/api/v1/health; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8001/api/v1/health
+          python -m pytest
       - name: Build frontend
         working-directory: frontend
         run: |
@@ -59,7 +75,7 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/alfa_deploy
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
           trap 'rm -f ~/.ssh/alfa_deploy images.tar.gz' EXIT
-          docker save "alfa-potok-backend:$GITHUB_SHA" "alfa-potok-frontend:$GITHUB_SHA" | gzip -1 > images.tar.gz
+          docker save "alfa-potok-backend:$GITHUB_SHA" "alfa-potok-frontend:$GITHUB_SHA" "alfa-potok-ml:$GITHUB_SHA" | gzip -1 > images.tar.gz
           ssh -T -i ~/.ssh/alfa_deploy -p 22222 \
             -o BatchMode=yes -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \

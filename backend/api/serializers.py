@@ -350,3 +350,64 @@ class Decision(s.Serializer):
     actor_role = s.ChoiceField(choices=["bank", "system"])
     created_at = s.DateTimeField()
     application_status = s.ChoiceField(choices=APPLICATION_STATUSES)
+
+
+class ValidApplicationWrite(ApplicationWrite):
+    def validate(self, attrs):
+        from .demo_data import PRODUCTS
+
+        product = next(p for p in PRODUCTS if p["id"] == attrs["product_id"])
+        errors = {}
+        if (
+            not product["min_amount"]
+            <= attrs["amount"]
+            <= product["max_amount"]
+        ):
+            errors["amount"] = "Сумма вне диапазона выбранного продукта."
+        if (
+            not product["min_term_months"]
+            <= attrs["term_months"]
+            <= product["max_term_months"]
+        ):
+            errors["term_months"] = "Срок вне диапазона выбранного продукта."
+        for field in ["monthly_revenue", "current_monthly_payments"]:
+            if attrs[field] > 10**12:
+                errors[field] = "Значение не должно превышать 1 трлн рублей."
+        if errors:
+            raise s.ValidationError(errors)
+        return attrs
+
+
+class MLResult(Scoring):
+    request_id = s.UUIDField()
+    recommendation = s.ChoiceField(choices=["approve", "counter", "reject"])
+    approval_probability_percent = s.IntegerField(min_value=0, max_value=100)
+    scoring_unavailable = s.BooleanField(default=False)
+
+
+class MLPreview(PrePredict):
+    method_note = s.CharField(required=False)
+
+
+class LiveApplication(Application):
+    client_scoring = ClientScoring()
+
+
+class LiveApplicationPage(ApplicationPage):
+    results = LiveApplication(many=True)
+
+
+class LiveBankApplication(LiveApplication):
+    company = Company()
+    scoring = MLResult(allow_null=True)
+    enrichment = Enrichment(allow_null=True)
+    scoring_unavailable = s.BooleanField()
+
+
+class LiveBankApplicationPage(ApplicationPage):
+    results = LiveBankApplication(many=True)
+
+
+class ManualDecision(s.Serializer):
+    verdict = s.ChoiceField(choices=["approve", "reject"])
+    reason = s.CharField(max_length=2000, allow_blank=False)

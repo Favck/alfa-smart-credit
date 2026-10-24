@@ -14,6 +14,7 @@ gzip -t "$incoming"
 gzip -dc "$incoming" | docker image load
 docker image inspect "alfa-potok-backend:$release" >/dev/null
 docker image inspect "alfa-potok-frontend:$release" >/dev/null
+docker image inspect "alfa-potok-ml:$release" >/dev/null
 previous=$(cat current-release 2>/dev/null || true)
 backup="/opt/alfa-potok/backups/$(date -u +%Y%m%dT%H%M%S)-$release.sqlite3"
 if [[ -f data/db.sqlite3 ]]; then
@@ -26,26 +27,29 @@ with sqlite3.connect('/opt/alfa-potok/data/db.sqlite3') as source:
 PY
 fi
 export RELEASE_SHA=$release
+compose_config=compose.yaml
 compose() {
-    docker compose --project-name alfa-potok --file compose.yaml \
+    docker compose --project-name alfa-potok --file "$compose_config" \
         --env-file .env "$@"
 }
-if compose up -d --wait --wait-timeout 150 \
+if compose up -d --remove-orphans --wait --wait-timeout 150 \
     && curl --fail --silent --show-error --retry 3 \
         -H 'Host: alpha.srv-node.com' \
         http://127.0.0.1:8092/api/v1/health/; then
+    cp compose.yaml last-good-compose.yaml
     printf '%s\n' "$release" > current-release
     printf 'Deployed %s\n' "$release"
 else
-    compose logs --tail 80
-    compose stop backend frontend
+    compose logs --tail 80 || true
+    compose stop backend frontend ml
     if [[ -n $previous ]]; then
         if [[ -f $backup ]]; then
             cp "$backup" data/db.sqlite3
             chown 10001:10001 data/db.sqlite3
         fi
         export RELEASE_SHA=$previous
-        compose up -d --wait --wait-timeout 150
+        compose_config=last-good-compose.yaml
+        compose up -d --remove-orphans --wait --wait-timeout 150
         echo "Rolled back to $previous" >&2
     fi
     exit 1

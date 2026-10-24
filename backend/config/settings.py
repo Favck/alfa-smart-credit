@@ -10,6 +10,10 @@ ALLOWED_HOSTS = os.environ.get(
     "DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,[::1]"
 ).split(",")
 DEMO_MODE = os.environ.get("DEMO_MODE", "true").lower() == "true"
+ML_BASE_URL = os.environ.get("ML_BASE_URL", "http://127.0.0.1:8001")
+ML_TIMEOUT_SECONDS = min(
+    15, max(0.1, float(os.environ.get("ML_TIMEOUT_SECONDS", "2.5")))
+)
 
 INSTALLED_APPS = [
     "django.contrib.admin",

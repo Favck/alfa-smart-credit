@@ -1,5 +1,6 @@
 from django.urls import path
 
+from . import pipeline as P
 from . import views as V
 
 urlpatterns = [
@@ -13,17 +14,17 @@ urlpatterns = [
     path("products/<str:product_id>/", V.ProductView.as_view()),
     path("news/", V.NewsView.as_view()),
     path("news/<int:news_id>/", V.NewsDetailView.as_view()),
-    path("scoring/pre-predict/", V.PrePredictView.as_view()),
-    path("applications/", V.ApplicationsView.as_view()),
-    path("applications/<uuid:application_id>/", V.ApplicationView.as_view()),
-    path("applications/<uuid:application_id>/submit/", V.SubmitView.as_view()),
-    path("applications/<uuid:application_id>/cancel/", V.CancelView.as_view()),
+    path("scoring/pre-predict/", P.PrePredictView.as_view()),
+    path("applications/", P.ApplicationsView.as_view()),
+    path("applications/<uuid:application_id>/", P.ApplicationView.as_view()),
+    path("applications/<uuid:application_id>/submit/", P.SubmitView.as_view()),
+    path("applications/<uuid:application_id>/cancel/", P.CancelView.as_view()),
     path(
-        "applications/<uuid:application_id>/history/", V.HistoryView.as_view()
+        "applications/<uuid:application_id>/history/", P.HistoryView.as_view()
     ),
     path(
         "applications/<uuid:application_id>/scoring/",
-        V.ClientScoringView.as_view(),
+        P.ClientScoringView.as_view(),
     ),
     path("applications/<uuid:application_id>/offer/", V.OfferView.as_view()),
     path(
@@ -57,18 +58,18 @@ urlpatterns = [
         ),
         V.InfoResponseView.as_view(),
     ),
-    path("bank/applications/", V.BankQueueView.as_view()),
+    path("bank/applications/", P.BankQueueView.as_view()),
     path(
         "bank/applications/<uuid:application_id>/",
-        V.BankApplicationView.as_view(),
+        P.BankApplicationView.as_view(),
     ),
     path(
         "bank/applications/<uuid:application_id>/decisions/",
-        V.BankDecisionsView.as_view(),
+        P.BankDecisionsView.as_view(),
     ),
     path(
         "bank/applications/<uuid:application_id>/history/",
-        V.BankHistoryView.as_view(),
+        P.BankHistoryView.as_view(),
     ),
     path(
         "bank/applications/<uuid:application_id>/documents/",

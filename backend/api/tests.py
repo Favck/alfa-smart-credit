@@ -58,7 +58,7 @@ class ApiSmokeTests(APITestCase):
             self.client.get("/api/v1/applications/").status_code, 403
         )
         self.assertEqual(
-            self.client.get("/api/v1/bank/applications/").status_code, 501
+            self.client.get("/api/v1/bank/applications/").status_code, 200
         )
 
     def test_invalid_profile_is_not_created(self):
@@ -110,7 +110,17 @@ class ApiSmokeTests(APITestCase):
 
     def test_planned_operations_are_explicit(self):
         self.login_as("green")
-        response = self.client.post("/api/v1/applications/", {}, format="json")
+        self.assertEqual(
+            self.client.post(
+                "/api/v1/applications/", {}, format="json"
+            ).status_code,
+            400,
+        )
+        response = self.client.post(
+            "/api/v1/applications/00000000-0000-0000-0000-000000000001/sign/",
+            {},
+            format="json",
+        )
         self.assertEqual(response.status_code, 501)
         self.assertEqual(response.data["code"], "not_implemented")
         schema = SchemaGenerator().get_schema(request=None, public=True)

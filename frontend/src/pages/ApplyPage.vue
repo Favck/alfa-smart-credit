@@ -1,12 +1,17 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { api, draftPayload } from '../api'
 import PageHeading from '../components/PageHeading.vue'
 import UiButton from '../components/UiButton.vue'
 import AnimatedNumber from '../components/AnimatedNumber.vue'
 import { money, products } from '../data/demo'
 
-const props = defineProps({ modelValue: Object, profile: Object })
-const emit = defineEmits(['update:modelValue', 'submit'])
+const props = defineProps({
+  modelValue: Object,
+  profile: Object,
+  busy: Boolean,
+})
+const emit = defineEmits(['update:modelValue', 'submit', 'changed'])
 const product = computed(() =>
   products.find((item) => item.id === props.modelValue.productId),
 )
@@ -37,8 +42,49 @@ function update(field, value) {
       Math.min(selected.maxTerm, next.months),
     )
   }
+  emit('changed')
   emit('update:modelValue', next)
 }
+const preview = ref(null)
+const previewLoading = ref(false)
+const previewError = ref('')
+let timer
+let sequence = 0
+watch(
+  () => [
+    props.modelValue.productId,
+    props.modelValue.amount,
+    props.modelValue.months,
+    props.modelValue.revenue,
+    props.modelValue.payments,
+  ],
+  () => {
+    const value = { ...props.modelValue }
+    clearTimeout(timer)
+    const current = ++sequence
+    preview.value = null
+    previewError.value = ''
+    previewLoading.value = true
+    timer = setTimeout(async () => {
+      try {
+        const result = await api('scoring/pre-predict/', {
+          method: 'POST',
+          data: draftPayload(value),
+        })
+        if (current === sequence) preview.value = result
+      } catch (error) {
+        if (current === sequence) previewError.value = error.message
+      } finally {
+        if (current === sequence) previewLoading.value = false
+      }
+    }, 600)
+  },
+  { deep: true, immediate: true },
+)
+onBeforeUnmount(() => {
+  clearTimeout(timer)
+  sequence++
+})
 </script>
 
 <template>
@@ -173,7 +219,27 @@ function update(field, value) {
         <p class="small muted">
           Окончательные условия определяются после проверки заявки.
         </p>
-        <UiButton type="submit">Отправить заявку →</UiButton>
+        <section class="ml-preview note" aria-live="polite">
+          <b>Предварительная оценка ML</b>
+          <p v-if="previewLoading">Выполняется расчёт…</p>
+          <p v-else-if="previewError">{{ previewError }}</p>
+          <template v-else-if="preview"
+            ><div class="ml-probability">
+              {{ preview.approval_probability_percent
+              }}<span>% · оценка 100 − PD</span>
+            </div>
+            <p>{{ preview.hint_message }}</p>
+            <p v-if="preview.recommended_max_amount">
+              Ориентир по сумме: {{ money(preview.recommended_max_amount) }}
+            </p>
+            <p v-if="preview.recommended_min_term_months">
+              Рекомендуемый срок:
+              {{ preview.recommended_min_term_months }} мес.
+            </p>
+            <p class="small">{{ preview.method_note }}</p></template
+          >
+        </section>
+        <UiButton type="submit" :disabled="busy">Отправить заявку →</UiButton>
       </div>
     </div>
   </form>

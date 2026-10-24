@@ -7,7 +7,7 @@ CI/CD: https://github.com/Favck/alfa-smart-credit/actions.
 домен и учётные записи сохранены. Секреты деплоя настроены в новом репозитории.
 
 Push в `main` запускает `.github/workflows/deploy.yml`: pytest, Django check,
-проверка миграций, сборка Vue, сборка двух production-образов и доставка
+проверка миграций/Swagger, сборка Vue, трёх production-образов и доставка
 по SSH. Pull request выполняет проверки и сборки без деплоя.
 Повторный деплой: Actions → CI and production deploy → Run workflow → main.
 
@@ -19,7 +19,9 @@ Push в `main` запускает `.github/workflows/deploy.yml`: pytest, Django
 - SQLite: `/opt/alfa-potok/data/db.sqlite3`, сохраняется между деплоями.
 - Внешний вход: отдельный Nginx virtual host `alpha.srv-node.com` →
   `127.0.0.1:8092`; Django доступен только внутри сети проекта.
-- Лимиты памяти: backend 384 MiB, frontend 128 MiB. Ротация Docker-логов.
+- Лимиты памяти: backend 384 MiB, ML 384 MiB, frontend 128 MiB. Ротация логов.
+- ML: только внутренняя сеть, без опубликованного порта, один поток OpenMP.
+  Healthcheck проверяет загрузку модели и реальный evaluate, а не только HTTP.
 - HTTPS: Let's Encrypt, webroot `/var/www/alfa-potok-acme`, certbot timer.
 - Пользователь `alfa-deploy` без Docker-группы и общего sudo-доступа.
   Отдельный ключ разрешает только фиксированную команду деплоя с SHA.
@@ -27,7 +29,7 @@ Push в `main` запускает `.github/workflows/deploy.yml`: pytest, Django
 - GitHub secrets: `ALFA_DEPLOY_SSH_KEY`, `ALFA_DEPLOY_KNOWN_HOSTS`.
   Ключи и `.env` в Git не хранятся.
 
-Frontend сохраняет существующее поведение: интерфейс работает на демоданных.
+Вход, заявки и результаты скоринга работают через Django и ML.
 Django API и Swagger доступны на `/api/v1/` и `/api/docs/`.
 `DEMO_MODE=true` намеренно включает синтетические демонстрационные профили.
 
@@ -46,9 +48,11 @@ Django API и Swagger доступны на `/api/v1/` и `/api/docs/`.
 
 Сервер блокирует параллельные деплои через flock, перед обновлением делает
 согласованную SQLite backup в `/opt/alfa-potok/backups/`, затем ждёт
-healthcheck обоих контейнеров и проверяет API через frontend.
+healthcheck трёх контейнеров и проверяет API через frontend.
 При ошибке останавливает только контейнеры этого проекта, восстанавливает
-предыдущую БД и предыдущие образы. Неуспешный первый деплой остаётся
+предыдущую БД, предыдущие образы и `last-good-compose.yaml`.
+Это позволяет откатиться и на старую конфигурацию без ML.
+Неуспешный первый деплой остаётся
 остановленным. Неудачный rollback требует вмешательства администратора.
 Автооткат теряет записи, сделанные после преддеплойной резервной копии;
 для текущего демонстрационного стенда это допустимо. Для реальных данных

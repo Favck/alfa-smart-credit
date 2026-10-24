@@ -6,40 +6,8 @@ info:
 paths:
   /api/v1/applications/:
     get:
-      operationId: listApplications
-      description: 'Контракт для обсуждения. Бизнес-логика ещё не реализована: сейчас
-        возвращается 501. Только заявки компании текущего клиента. Порядок: сначала
-        новые.'
-      summary: '[ПЛАН] Список своих заявок'
-      parameters:
-      - in: query
-        name: page
-        schema:
-          type: integer
-        description: Номер страницы, начиная с 1.
-      - in: query
-        name: page_size
-        schema:
-          type: integer
-        description: По умолчанию 20, максимум 100.
-      - in: query
-        name: status
-        schema:
-          type: string
-          enum:
-          - APPROVED
-          - CANCELLED
-          - CHECK
-          - COUNTER_OFFER
-          - DISBURSED
-          - DRAFT
-          - ENRICH
-          - NEED_INFO
-          - REJECTED
-          - REVIEW
-          - SCORING
-          - SIGNING
-          - SUBMITTED
+      operationId: listClientApplications
+      summary: Сохранённые заявки своей компании
       tags:
       - Заявки
       security:
@@ -49,60 +17,24 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApplicationPage'
+                $ref: '#/components/schemas/LiveApplicationPage'
           description: ''
-        '400':
-          description: Ошибка валидации параметров или полей запроса.
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '409':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: Действие недоступно в текущем статусе или конфликт версии данных.
-        '501':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlannedError'
-          description: ''
-      x-implementation-status: planned
     post:
       operationId: v1_applications_create
-      description: 'Контракт для обсуждения. Бизнес-логика ещё не реализована: сейчас
-        возвращается 501. Компания определяется по авторизации. Начальный статус DRAFT.
-        В первой версии черновик содержит все основные числовые поля.'
-      summary: '[ПЛАН] Создать черновик заявки'
+      summary: Создать черновик заявки
       tags:
       - Заявки
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApplicationWriteRequest'
+              $ref: '#/components/schemas/ValidApplicationWriteRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ApplicationWriteRequest'
+              $ref: '#/components/schemas/ValidApplicationWriteRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ApplicationWriteRequest'
+              $ref: '#/components/schemas/ValidApplicationWriteRequest'
         required: true
       security:
       - tokenAuth: []
@@ -111,47 +43,18 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Application'
-          description: ''
-        '400':
-          description: Ошибка валидации параметров или полей запроса.
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/LiveApplication'
           description: ''
         '409':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-          description: Действие недоступно в текущем статусе или конфликт версии данных.
-        '501':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlannedError'
           description: ''
-      x-implementation-status: planned
   /api/v1/applications/{application_id}/:
     get:
       operationId: v1_applications_retrieve
-      description: 'Контракт для обсуждения. Бизнес-логика ещё не реализована: сейчас
-        возвращается 501. '
-      summary: '[ПЛАН] Карточка своей заявки'
+      summary: Карточка своей заявки
       parameters:
       - in: path
         name: application_id
@@ -168,47 +71,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Application'
+                $ref: '#/components/schemas/LiveApplication'
           description: ''
-        '400':
-          description: Ошибка валидации параметров или полей запроса.
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '409':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: Действие недоступно в текущем статусе или конфликт версии данных.
-        '501':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlannedError'
-          description: ''
-      x-implementation-status: planned
     patch:
       operationId: v1_applications_partial_update
-      description: 'Контракт для обсуждения. Бизнес-логика ещё не реализована: сейчас
-        возвращается 501. Только DRAFT. Нельзя менять company_id, status и результаты
-        скоринга. Для NEED_INFO используется отдельный ответ на запрос.'
-      summary: '[ПЛАН] Обновить черновик'
+      summary: Изменить черновик
       parameters:
       - in: path
         name: application_id
@@ -236,48 +103,18 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Application'
-          description: ''
-        '400':
-          description: Ошибка валидации параметров или полей запроса.
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/LiveApplication'
           description: ''
         '409':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-          description: Действие недоступно в текущем статусе или конфликт версии данных.
-        '501':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlannedError'
           description: ''
-      x-implementation-status: planned
   /api/v1/applications/{application_id}/cancel/:
     post:
       operationId: v1_applications_cancel_create
-      description: 'Контракт для обсуждения. Бизнес-логика ещё не реализована: сейчас
-        возвращается 501. Пока предлагается разрешить отмену в DRAFT, NEED_INFO и
-        COUNTER_OFFER. Подписанную или выданную заявку отменить нельзя.'
-      summary: '[ПЛАН] Отменить заявку'
+      summary: Отменить черновик или заявку на ручном рассмотрении
       parameters:
       - in: path
         name: application_id
@@ -305,41 +142,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Application'
-          description: ''
-        '400':
-          description: Ошибка валидации параметров или полей запроса.
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/LiveApplication'
           description: ''
         '409':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-          description: Действие недоступно в текущем статусе или конфликт версии данных.
-        '501':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlannedError'
           description: ''
-      x-implementation-status: planned
   /api/v1/applications/{application_id}/documents/:
     get:
       operationId: v1_applications_documents_list
@@ -530,10 +340,7 @@ paths:
   /api/v1/applications/{application_id}/history/:
     get:
       operationId: v1_applications_history_list
-      description: 'Контракт для обсуждения. Бизнес-логика ещё не реализована: сейчас
-        возвращается 501. Хронологический порядок; используется Vue для таймлайна.
-        Внутренние комментарии сотрудника не выдаются.'
-      summary: '[ПЛАН] История движения своей заявки'
+      summary: История своей заявки
       parameters:
       - in: path
         name: application_id
@@ -554,39 +361,6 @@ paths:
                 items:
                   $ref: '#/components/schemas/StatusEvent'
           description: ''
-        '400':
-          description: Ошибка валидации параметров или полей запроса.
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '409':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: Действие недоступно в текущем статусе или конфликт версии данных.
-        '501':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlannedError'
-          description: ''
-      x-implementation-status: planned
   /api/v1/applications/{application_id}/info-request/:
     get:
       operationId: v1_applications_info_request_retrieve
@@ -919,10 +693,7 @@ paths:
   /api/v1/applications/{application_id}/scoring/:
     get:
       operationId: v1_applications_scoring_retrieve
-      description: 'Контракт для обсуждения. Бизнес-логика ещё не реализована: сейчас
-        возвращается 501. До завершения оценки — 409. Числовые пороги и внутренние
-        проверки остаются в банковском API.'
-      summary: '[ПЛАН] Понятное клиенту объяснение оценки'
+      summary: Понятное клиенту объяснение результата
       parameters:
       - in: path
         name: application_id
@@ -941,39 +712,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ClientScoring'
           description: ''
-        '400':
-          description: Ошибка валидации параметров или полей запроса.
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '409':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: Действие недоступно в текущем статусе или конфликт версии данных.
-        '501':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlannedError'
-          description: ''
-      x-implementation-status: planned
   /api/v1/applications/{application_id}/sign/:
     post:
       operationId: v1_applications_sign_create
@@ -1048,12 +786,7 @@ paths:
   /api/v1/applications/{application_id}/submit/:
     post:
       operationId: v1_applications_submit_create
-      description: 'Контракт для обсуждения. Бизнес-логика ещё не реализована: сейчас
-        возвращается 501. DRAFT → SUBMITTED. Проверка лимитов продукта, затем CHECK
-        → ENRICH → SCORING. Конвейер обрабатывается в фоне; 202 возвращает SUBMITTED.
-        Способ фонового выполнения ещё не выбран. Повторная отправка не запускает
-        второй конвейер.'
-      summary: '[ПЛАН] Отправить заявку в обработку'
+      summary: Отправить заявку на проверку и ML-скоринг
       parameters:
       - in: path
         name: application_id
@@ -1066,45 +799,18 @@ paths:
       security:
       - tokenAuth: []
       responses:
-        '202':
+        '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Application'
-          description: ''
-        '400':
-          description: Ошибка валидации параметров или полей запроса.
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/LiveApplication'
           description: ''
         '409':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-          description: Действие недоступно в текущем статусе или конфликт версии данных.
-        '501':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlannedError'
           description: ''
-      x-implementation-status: planned
   /api/v1/auth/demo-login/:
     post:
       operationId: v1_auth_demo_login_create
@@ -1227,53 +933,7 @@ paths:
   /api/v1/bank/applications/:
     get:
       operationId: listBankApplications
-      description: 'Контракт для обсуждения. Бизнес-логика ещё не реализована: сейчас
-        возвращается 501. По умолчанию REVIEW. Включает заявки без результата ML,
-        если скоринг недоступен.'
-      summary: '[ПЛАН] Очередь заявок банка'
-      parameters:
-      - in: query
-        name: grade
-        schema:
-          type: string
-          enum:
-          - A
-          - B
-          - C
-          - D
-      - in: query
-        name: page
-        schema:
-          type: integer
-        description: Номер страницы, начиная с 1.
-      - in: query
-        name: page_size
-        schema:
-          type: integer
-        description: По умолчанию 20, максимум 100.
-      - in: query
-        name: search
-        schema:
-          type: string
-        description: Номер заявки, название компании или ИНН.
-      - in: query
-        name: status
-        schema:
-          type: string
-          enum:
-          - APPROVED
-          - CANCELLED
-          - CHECK
-          - COUNTER_OFFER
-          - DISBURSED
-          - DRAFT
-          - ENRICH
-          - NEED_INFO
-          - REJECTED
-          - REVIEW
-          - SCORING
-          - SIGNING
-          - SUBMITTED
+      summary: Сохранённые заявки для сотрудника банка
       tags:
       - Банк
       security:
@@ -1283,48 +943,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApplicationPage'
+                $ref: '#/components/schemas/LiveBankApplicationPage'
           description: ''
-        '400':
-          description: Ошибка валидации параметров или полей запроса.
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '409':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: Действие недоступно в текущем статусе или конфликт версии данных.
-        '501':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlannedError'
-          description: ''
-      x-implementation-status: planned
   /api/v1/bank/applications/{application_id}/:
     get:
       operationId: v1_bank_applications_retrieve
-      description: 'Контракт для обсуждения. Бизнес-логика ещё не реализована: сейчас
-        возвращается 501. Анкета, компания, результаты обогащения и ML. При таймауте
-        ML — REVIEW и scoring_unavailable=true.'
-      summary: '[ПЛАН] Полная карточка для андеррайтера'
+      summary: Карточка с результатом модели и сведениями проверок
       parameters:
       - in: path
         name: application_id
@@ -1341,47 +965,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BankApplication'
+                $ref: '#/components/schemas/LiveBankApplication'
           description: ''
-        '400':
-          description: Ошибка валидации параметров или полей запроса.
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '409':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: Действие недоступно в текущем статусе или конфликт версии данных.
-        '501':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlannedError'
-          description: ''
-      x-implementation-status: planned
   /api/v1/bank/applications/{application_id}/decisions/:
     get:
       operationId: v1_bank_applications_decisions_list
-      description: 'Контракт для обсуждения. Бизнес-логика ещё не реализована: сейчас
-        возвращается 501. Системные и ручные решения в хронологическом порядке.'
-      summary: '[ПЛАН] История решений'
+      summary: История решений по заявке
       parameters:
       - in: path
         name: application_id
@@ -1402,48 +991,9 @@ paths:
                 items:
                   $ref: '#/components/schemas/Decision'
           description: ''
-        '400':
-          description: Ошибка валидации параметров или полей запроса.
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '409':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: Действие недоступно в текущем статусе или конфликт версии данных.
-        '501':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlannedError'
-          description: ''
-      x-implementation-status: planned
     post:
       operationId: v1_bank_applications_decisions_create
-      description: 'Контракт для обсуждения. Бизнес-логика ещё не реализована: сейчас
-        возвращается 501. Только REVIEW. approve → APPROVED; counter → COUNTER_OFFER;
-        need_info → NEED_INFO; reject → REJECTED. Для counter обязательны сумма, срок
-        и ставка. Для need_info обязателен перечень полей или document_required=true.
-        Все решения имеют обоснование и запись аудита. Обход стоп-факторов пока не
-        предусматривается.'
-      summary: '[ПЛАН] Принять решение по заявке'
+      summary: Одобрить или отклонить заявку на ручном рассмотрении
       parameters:
       - in: path
         name: application_id
@@ -1457,13 +1007,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DecisionWriteRequest'
+              $ref: '#/components/schemas/ManualDecisionRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/DecisionWriteRequest'
+              $ref: '#/components/schemas/ManualDecisionRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/DecisionWriteRequest'
+              $ref: '#/components/schemas/ManualDecisionRequest'
         required: true
       security:
       - tokenAuth: []
@@ -1474,39 +1024,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Decision'
           description: ''
-        '400':
-          description: Ошибка валидации параметров или полей запроса.
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
         '409':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-          description: Действие недоступно в текущем статусе или конфликт версии данных.
-        '501':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlannedError'
           description: ''
-      x-implementation-status: planned
   /api/v1/bank/applications/{application_id}/documents/:
     get:
       operationId: v1_bank_applications_documents_list
@@ -1569,10 +1092,7 @@ paths:
   /api/v1/bank/applications/{application_id}/history/:
     get:
       operationId: v1_bank_applications_history_list
-      description: 'Контракт для обсуждения. Бизнес-логика ещё не реализована: сейчас
-        возвращается 501. Неизменяемая история: до/после, роль участника, причина
-        и время.'
-      summary: '[ПЛАН] Аудит переходов заявки'
+      summary: История статусов заявки
       parameters:
       - in: path
         name: application_id
@@ -1593,39 +1113,6 @@ paths:
                 items:
                   $ref: '#/components/schemas/StatusEvent'
           description: ''
-        '400':
-          description: Ошибка валидации параметров или полей запроса.
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '409':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: Действие недоступно в текущем статусе или конфликт версии данных.
-        '501':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlannedError'
-          description: ''
-      x-implementation-status: planned
   /api/v1/company/:
     get:
       operationId: v1_company_retrieve
@@ -1784,25 +1271,20 @@ paths:
   /api/v1/scoring/pre-predict/:
     post:
       operationId: v1_scoring_pre_predict_create
-      description: 'Контракт для обсуждения. Бизнес-логика ещё не реализована: сейчас
-        возвращается 501. Не создаёт заявку. Django добавляет признаки компании из
-        локальных моков и вызывает ML. application_id для внутреннего ML-запроса до
-        создания заявки ещё нужно согласовать. Vue использует debounce 300–400 мс.
-        При недоступности ML планируется 503 с возможностью продолжить оформление.'
-      summary: '[ПЛАН] Предварительный расчёт до отправки заявки'
+      summary: Предварительная оценка параметров через ML
       tags:
       - Скоринг
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApplicationWriteRequest'
+              $ref: '#/components/schemas/ValidApplicationWriteRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ApplicationWriteRequest'
+              $ref: '#/components/schemas/ValidApplicationWriteRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ApplicationWriteRequest'
+              $ref: '#/components/schemas/ValidApplicationWriteRequest'
         required: true
       security:
       - tokenAuth: []
@@ -1811,39 +1293,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PrePredict'
-          description: ''
-        '400':
-          description: Ошибка валидации параметров или полей запроса.
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: ''
-        '409':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: Действие недоступно в текущем статусе или конфликт версии данных.
-        '501':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlannedError'
+                $ref: '#/components/schemas/MLPreview'
           description: ''
         '503':
           content:
@@ -1851,7 +1301,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
           description: ''
-      x-implementation-status: planned
 components:
   schemas:
     Application:
@@ -1913,28 +1362,6 @@ components:
       - status_label
       - term_months
       - updated_at
-    ApplicationPage:
-      type: object
-      properties:
-        count:
-          type: integer
-        next:
-          type: string
-          format: uri
-          nullable: true
-        previous:
-          type: string
-          format: uri
-          nullable: true
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/Application'
-      required:
-      - count
-      - next
-      - previous
-      - results
     ApplicationStatusEnum:
       enum:
       - DRAFT
@@ -1965,106 +1392,6 @@ components:
         * `SIGNING` - SIGNING
         * `DISBURSED` - DISBURSED
         * `CANCELLED` - CANCELLED
-    ApplicationWriteRequest:
-      type: object
-      properties:
-        product_id:
-          $ref: '#/components/schemas/ProductCodeEnum'
-        amount:
-          type: integer
-          minimum: 50000
-          description: Целые рубли. Дополнительно проверяется диапазон продукта.
-        term_months:
-          type: integer
-          maximum: 60
-          minimum: 1
-        purpose:
-          type: string
-          maxLength: 1000
-        monthly_revenue:
-          type: integer
-          minimum: 0
-        current_monthly_payments:
-          type: integer
-          minimum: 0
-      required:
-      - amount
-      - current_monthly_payments
-      - monthly_revenue
-      - product_id
-      - term_months
-    BankApplication:
-      type: object
-      properties:
-        product_id:
-          $ref: '#/components/schemas/ProductCodeEnum'
-        amount:
-          type: integer
-          minimum: 50000
-          description: Целые рубли. Дополнительно проверяется диапазон продукта.
-        term_months:
-          type: integer
-          maximum: 60
-          minimum: 1
-        purpose:
-          type: string
-          maxLength: 1000
-        monthly_revenue:
-          type: integer
-          minimum: 0
-        current_monthly_payments:
-          type: integer
-          minimum: 0
-        id:
-          type: string
-          format: uuid
-        number:
-          type: string
-          description: Номер для показа клиенту, например APP-1042.
-        company_id:
-          type: string
-        company_name:
-          type: string
-        status:
-          $ref: '#/components/schemas/ApplicationStatusEnum'
-        status_label:
-          type: string
-        next_action:
-          $ref: '#/components/schemas/NextActionEnum'
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        company:
-          $ref: '#/components/schemas/Company'
-        scoring:
-          allOf:
-          - $ref: '#/components/schemas/Scoring'
-          nullable: true
-        enrichment:
-          allOf:
-          - $ref: '#/components/schemas/Enrichment'
-          nullable: true
-      required:
-      - amount
-      - company
-      - company_id
-      - company_name
-      - created_at
-      - current_monthly_payments
-      - enrichment
-      - id
-      - monthly_revenue
-      - next_action
-      - number
-      - product_id
-      - scoring
-      - status
-      - status_label
-      - term_months
-      - updated_at
     CancelRequest:
       type: object
       properties:
@@ -2183,7 +1510,7 @@ components:
           type: string
           format: uuid
         verdict:
-          $ref: '#/components/schemas/VerdictEnum'
+          $ref: '#/components/schemas/DecisionVerdictEnum'
         reason:
           type: string
         actor_role:
@@ -2209,42 +1536,18 @@ components:
       description: |-
         * `bank` - bank
         * `system` - system
-    DecisionWriteRequest:
-      type: object
-      properties:
-        verdict:
-          $ref: '#/components/schemas/VerdictEnum'
-        reason:
-          type: string
-          minLength: 1
-          description: Обоснование обязательно для любого ручного решения.
-          maxLength: 2000
-        amount:
-          type: integer
-          minimum: 50000
-          description: Обязательно для counter; для approve — если меняются условия.
-        term_months:
-          type: integer
-          maximum: 60
-          minimum: 1
-          description: Обязательно для counter.
-        annual_rate_percent:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
-          description: Обязательно для counter.
-        requested_fields:
-          type: array
-          items:
-            type: string
-            minLength: 1
-          description: Для need_info — перечень полей для уточнения.
-        document_required:
-          type: boolean
-          description: Для need_info — требуется ли файл.
-      required:
-      - reason
-      - verdict
+    DecisionVerdictEnum:
+      enum:
+      - approve
+      - counter
+      - need_info
+      - reject
+      type: string
+      description: |-
+        * `approve` - approve
+        * `counter` - counter
+        * `need_info` - need_info
+        * `reject` - reject
     DemoLoginRequest:
       type: object
       properties:
@@ -2469,6 +1772,190 @@ components:
       description: |-
         * `company` - company
         * `individual_entrepreneur` - individual_entrepreneur
+    LiveApplication:
+      type: object
+      properties:
+        product_id:
+          $ref: '#/components/schemas/ProductCodeEnum'
+        amount:
+          type: integer
+          minimum: 50000
+          description: Целые рубли. Дополнительно проверяется диапазон продукта.
+        term_months:
+          type: integer
+          maximum: 60
+          minimum: 1
+        purpose:
+          type: string
+          maxLength: 1000
+        monthly_revenue:
+          type: integer
+          minimum: 0
+        current_monthly_payments:
+          type: integer
+          minimum: 0
+        id:
+          type: string
+          format: uuid
+        number:
+          type: string
+          description: Номер для показа клиенту, например APP-1042.
+        company_id:
+          type: string
+        company_name:
+          type: string
+        status:
+          $ref: '#/components/schemas/ApplicationStatusEnum'
+        status_label:
+          type: string
+        next_action:
+          $ref: '#/components/schemas/NextActionEnum'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        client_scoring:
+          $ref: '#/components/schemas/ClientScoring'
+      required:
+      - amount
+      - client_scoring
+      - company_id
+      - company_name
+      - created_at
+      - current_monthly_payments
+      - id
+      - monthly_revenue
+      - next_action
+      - number
+      - product_id
+      - status
+      - status_label
+      - term_months
+      - updated_at
+    LiveApplicationPage:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          format: uri
+          nullable: true
+        previous:
+          type: string
+          format: uri
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LiveApplication'
+      required:
+      - count
+      - next
+      - previous
+      - results
+    LiveBankApplication:
+      type: object
+      properties:
+        product_id:
+          $ref: '#/components/schemas/ProductCodeEnum'
+        amount:
+          type: integer
+          minimum: 50000
+          description: Целые рубли. Дополнительно проверяется диапазон продукта.
+        term_months:
+          type: integer
+          maximum: 60
+          minimum: 1
+        purpose:
+          type: string
+          maxLength: 1000
+        monthly_revenue:
+          type: integer
+          minimum: 0
+        current_monthly_payments:
+          type: integer
+          minimum: 0
+        id:
+          type: string
+          format: uuid
+        number:
+          type: string
+          description: Номер для показа клиенту, например APP-1042.
+        company_id:
+          type: string
+        company_name:
+          type: string
+        status:
+          $ref: '#/components/schemas/ApplicationStatusEnum'
+        status_label:
+          type: string
+        next_action:
+          $ref: '#/components/schemas/NextActionEnum'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        client_scoring:
+          $ref: '#/components/schemas/ClientScoring'
+        company:
+          $ref: '#/components/schemas/Company'
+        scoring:
+          allOf:
+          - $ref: '#/components/schemas/MLResult'
+          nullable: true
+        enrichment:
+          allOf:
+          - $ref: '#/components/schemas/Enrichment'
+          nullable: true
+        scoring_unavailable:
+          type: boolean
+      required:
+      - amount
+      - client_scoring
+      - company
+      - company_id
+      - company_name
+      - created_at
+      - current_monthly_payments
+      - enrichment
+      - id
+      - monthly_revenue
+      - next_action
+      - number
+      - product_id
+      - scoring
+      - scoring_unavailable
+      - status
+      - status_label
+      - term_months
+      - updated_at
+    LiveBankApplicationPage:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          format: uri
+          nullable: true
+        previous:
+          type: string
+          format: uri
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LiveBankApplication'
+      required:
+      - count
+      - next
+      - previous
+      - results
     LoginResult:
       type: object
       properties:
@@ -2480,6 +1967,129 @@ components:
       required:
       - token
       - user
+    MLPreview:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/MLPreviewStatusEnum'
+        approval_probability_percent:
+          type: integer
+          maximum: 100
+          minimum: 0
+          description: Предварительная оценка, не гарантия решения и не 1-PD.
+        estimated_monthly_payment:
+          type: integer
+          nullable: true
+        dti_forecast:
+          type: number
+          format: double
+          minimum: 0
+        recommended_max_amount:
+          type: integer
+          nullable: true
+        recommended_min_term_months:
+          type: integer
+          nullable: true
+        hint_message:
+          type: string
+        method_note:
+          type: string
+      required:
+      - approval_probability_percent
+      - dti_forecast
+      - estimated_monthly_payment
+      - hint_message
+      - recommended_max_amount
+      - recommended_min_term_months
+      - status
+    MLPreviewStatusEnum:
+      enum:
+      - green
+      - yellow
+      - red
+      - blocked
+      type: string
+      description: |-
+        * `green` - green
+        * `yellow` - yellow
+        * `red` - red
+        * `blocked` - blocked
+    MLResult:
+      type: object
+      properties:
+        score:
+          type: integer
+          maximum: 850
+          minimum: 300
+          nullable: true
+        pd:
+          type: number
+          format: double
+          maximum: 1
+          minimum: 0
+          nullable: true
+        grade:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/GradeEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScoreReason'
+        stop_factors:
+          type: array
+          items:
+            type: string
+        max_affordable_amount:
+          type: integer
+          nullable: true
+        model_version:
+          type: string
+          nullable: true
+        scoring_unavailable:
+          type: boolean
+          default: false
+        request_id:
+          type: string
+          format: uuid
+        recommendation:
+          $ref: '#/components/schemas/RecommendationEnum'
+        approval_probability_percent:
+          type: integer
+          maximum: 100
+          minimum: 0
+      required:
+      - approval_probability_percent
+      - grade
+      - max_affordable_amount
+      - model_version
+      - pd
+      - reasons
+      - recommendation
+      - request_id
+      - score
+      - stop_factors
+    ManualDecisionRequest:
+      type: object
+      properties:
+        verdict:
+          $ref: '#/components/schemas/ManualDecisionVerdictEnum'
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      required:
+      - reason
+      - verdict
+    ManualDecisionVerdictEnum:
+      enum:
+      - approve
+      - reject
+      type: string
+      description: |-
+        * `approve` - approve
+        * `reject` - reject
     NewsDetail:
       type: object
       properties:
@@ -2632,51 +2242,6 @@ components:
           default: not_implemented
       required:
       - detail
-    PrePredict:
-      type: object
-      properties:
-        status:
-          $ref: '#/components/schemas/PrePredictStatusEnum'
-        approval_probability_percent:
-          type: integer
-          maximum: 100
-          minimum: 0
-          description: Предварительная оценка, не гарантия решения и не 1-PD.
-        estimated_monthly_payment:
-          type: integer
-          nullable: true
-        dti_forecast:
-          type: number
-          format: double
-          minimum: 0
-        recommended_max_amount:
-          type: integer
-          nullable: true
-        recommended_min_term_months:
-          type: integer
-          nullable: true
-        hint_message:
-          type: string
-      required:
-      - approval_probability_percent
-      - dti_forecast
-      - estimated_monthly_payment
-      - hint_message
-      - recommended_max_amount
-      - recommended_min_term_months
-      - status
-    PrePredictStatusEnum:
-      enum:
-      - green
-      - yellow
-      - red
-      - blocked
-      type: string
-      description: |-
-        * `green` - green
-        * `yellow` - yellow
-        * `red` - red
-        * `blocked` - blocked
     Product:
       type: object
       properties:
@@ -2721,6 +2286,16 @@ components:
         * `working_capital` - working_capital
         * `equipment_purchase` - equipment_purchase
         * `overdraft` - overdraft
+    RecommendationEnum:
+      enum:
+      - approve
+      - counter
+      - reject
+      type: string
+      description: |-
+        * `approve` - approve
+        * `counter` - counter
+        * `reject` - reject
     RoleEnum:
       enum:
       - client
@@ -2753,50 +2328,6 @@ components:
       - factor
       - impact
       - text
-    Scoring:
-      type: object
-      properties:
-        score:
-          type: integer
-          maximum: 850
-          minimum: 300
-          nullable: true
-        pd:
-          type: number
-          format: double
-          maximum: 1
-          minimum: 0
-          nullable: true
-        grade:
-          nullable: true
-          oneOf:
-          - $ref: '#/components/schemas/GradeEnum'
-          - $ref: '#/components/schemas/NullEnum'
-        reasons:
-          type: array
-          items:
-            $ref: '#/components/schemas/ScoreReason'
-        stop_factors:
-          type: array
-          items:
-            type: string
-        max_affordable_amount:
-          type: integer
-          nullable: true
-        model_version:
-          type: string
-          nullable: true
-        scoring_unavailable:
-          type: boolean
-      required:
-      - grade
-      - max_affordable_amount
-      - model_version
-      - pd
-      - reasons
-      - score
-      - scoring_unavailable
-      - stop_factors
     SignRequest:
       type: object
       properties:
@@ -2847,18 +2378,34 @@ components:
         * `client` - client
         * `bank` - bank
         * `system` - system
-    VerdictEnum:
-      enum:
-      - approve
-      - counter
-      - need_info
-      - reject
-      type: string
-      description: |-
-        * `approve` - approve
-        * `counter` - counter
-        * `need_info` - need_info
-        * `reject` - reject
+    ValidApplicationWriteRequest:
+      type: object
+      properties:
+        product_id:
+          $ref: '#/components/schemas/ProductCodeEnum'
+        amount:
+          type: integer
+          minimum: 50000
+          description: Целые рубли. Дополнительно проверяется диапазон продукта.
+        term_months:
+          type: integer
+          maximum: 60
+          minimum: 1
+        purpose:
+          type: string
+          maxLength: 1000
+        monthly_revenue:
+          type: integer
+          minimum: 0
+        current_monthly_payments:
+          type: integer
+          minimum: 0
+      required:
+      - amount
+      - current_monthly_payments
+      - monthly_revenue
+      - product_id
+      - term_months
   securitySchemes:
     tokenAuth:
       type: apiKey

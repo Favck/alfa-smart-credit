@@ -7,8 +7,17 @@ services:
       DJANGO_DEBUG: "true"
       DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,[::1]"
       DEMO_MODE: "true"
+      ML_BASE_URL: "http://ml:8001"
     volumes:
       - backend_data:/app/data
+
+  ml:
+    build: ./ml
+    environment:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+    mem_limit: 384m
+    cpus: 0.5
 
   frontend:
     build: ./frontend

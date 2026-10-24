@@ -9,23 +9,43 @@ const props = defineProps({
   profile: Object,
   application: Object,
   product: Object,
-  stage: { type: Number, default: 2 },
+  applications: { type: Array, default: () => [] },
 })
 defineEmits(['navigate'])
-const approved = computed(() => props.stage === 4)
-const status = computed(() =>
-  approved.value
-    ? 'Одобрено'
-    : props.stage === 3
-      ? 'Решение банка'
-      : 'На рассмотрении',
+const approved = computed(() => props.application?.status === 'APPROVED')
+const status = computed(() => props.application?.status_label || 'Нет заявок')
+const stage = computed(
+  () =>
+    ({
+      DRAFT: 0,
+      SUBMITTED: 0,
+      CHECK: 1,
+      ENRICH: 1,
+      SCORING: 2,
+      REVIEW: 3,
+      APPROVED: 3,
+      REJECTED: 3,
+      CANCELLED: 0,
+    })[props.application?.status] ?? 0,
 )
-const message = computed(() =>
-  approved.value
-    ? 'Финансирование одобрено!'
-    : props.stage === 3
-      ? 'Формируем решение'
-      : 'Ваши планы уже в работе',
+const message = computed(
+  () =>
+    ({
+      APPROVED: 'Заявка одобрена',
+      REJECTED: 'По заявке принято решение',
+      CANCELLED: 'Заявка отменена',
+      DRAFT: 'Продолжите оформление',
+      REVIEW: 'Рассмотрение сотрудником',
+    })[props.application?.status] || 'Ваши планы уже в работе',
+)
+const activeCount = computed(
+  () =>
+    props.applications.filter(
+      (a) => !['DRAFT', 'REJECTED', 'CANCELLED'].includes(a.status),
+    ).length,
+)
+const totalAmount = computed(() =>
+  props.applications.reduce((total, a) => total + a.amount, 0),
 )
 </script>
 
@@ -61,7 +81,7 @@ const message = computed(() =>
       <span class="overview-icon accent"><AppIcon name="applications" /></span
       ><span class="metric-copy"
         ><span class="metric-label">Активные заявки</span
-        ><strong><AnimatedNumber :value="1" /></strong
+        ><strong><AnimatedNumber :value="activeCount" /></strong
         ><span class="muted small">Следите за каждым этапом</span></span
       ><AppIcon name="chevron" />
     </button>
@@ -72,8 +92,7 @@ const message = computed(() =>
       <span class="overview-icon"><AppIcon name="coins" /></span
       ><span class="metric-copy"
         ><span class="metric-label">Сумма заявок</span
-        ><strong
-          ><AnimatedNumber :value="application.amount" currency /></strong
+        ><strong><AnimatedNumber :value="totalAmount" currency /></strong
         ><span class="muted small">Общая запрашиваемая сумма</span></span
       ><AppIcon name="chevron" />
     </button>
@@ -96,12 +115,12 @@ const message = computed(() =>
         Все заявки <AppIcon name="arrow" />
       </button>
     </div>
-    <div class="latest-application">
+    <div v-if="application" class="latest-application">
       <div class="application-details">
         <div class="application-title-row">
           <span class="overview-icon accent"><AppIcon name="coins" /></span>
           <div>
-            <h3>Заявка APP-1042</h3>
+            <h3>Заявка {{ application.number }}</h3>
             <span class="muted">{{ product.name }}</span>
           </div>
           <span class="pill" :class="approved ? 'success' : 'pending'"
@@ -122,7 +141,7 @@ const message = computed(() =>
         </div>
         <ol class="horizontal-timeline" aria-label="Путь заявки">
           <li
-            v-for="(step, index) in steps"
+            v-for="(step, index) in steps.slice(0, 4)"
             :key="step.title"
             :class="{ done: index < stage, current: index === stage }"
             :aria-current="index === stage ? 'step' : undefined"
@@ -151,26 +170,30 @@ const message = computed(() =>
             <h3>{{ message }}</h3>
             <p>
               {{
-                approved
-                  ? `Банк подтвердил финансирование на сумму ${money(application.amount)} сроком на ${application.months} мес.`
-                  : steps[stage].description +
-                    '. Мы сообщим о следующем шаге в кабинете.'
+                application.client_scoring?.explanation ||
+                application.status_label
               }}
             </p>
           </div>
         </div>
         <UiButton @click="$emit('navigate', 'applications')"
-          >{{ approved ? 'Посмотреть решение' : 'Открыть заявку'
-          }}<AppIcon name="arrow"
+          >{{ 'Открыть заявку' }}<AppIcon name="arrow"
         /></UiButton>
         <div class="document-note">
-          <AppIcon name="applications" /><span>{{
-            approved
-              ? 'Ознакомьтесь с результатом рассмотрения в карточке заявки.'
-              : 'Пока никаких действий от вас не требуется. Все обновления появятся здесь.'
-          }}</span>
+          <AppIcon name="applications" /><span
+            >Результат и история сохранены. Договоры и подписание появятся на
+            следующем этапе проекта.</span
+          >
         </div>
       </div>
+    </div>
+    <div v-if="!application" class="empty-state">
+      <AppIcon name="applications" />
+      <h3>Здесь начнётся история ваших планов</h3>
+      <p class="muted">
+        Создайте первую заявку — её статус и результат появятся в кабинете.
+      </p>
+      <UiButton @click="$emit('navigate', 'apply')">Создать заявку</UiButton>
     </div>
   </section>
 

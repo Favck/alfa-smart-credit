@@ -30,8 +30,14 @@ Synthetic/local data:
   Original files are bundled locally; no external image service is needed at runtime.
 - User profiles, company details, product terms and articles in api/demo_data.py are synthetic demo data.
 - Product rates are illustrative; no current central-bank or commercial-bank feed is connected.
-- No external datasets, trained models or paid APIs are used by this backend.
-- EGRUL/EGRIP/FNS/BKI, ML scoring, document signing and disbursement are planned integrations only.
-  Their contract endpoints currently return HTTP 501, and do not perform external or financial operations.
+- The developer-supplied ml/ service includes a trained LightGBM model and a
+  synthetic-data training script. Its source, dependencies and model artifact
+  are consumed unchanged by Django through an internal HTTP adapter.
+- ML components: LightGBM (MIT), NumPy (BSD-3-Clause), FastAPI (MIT),
+  Pydantic (MIT), Uvicorn (BSD-3-Clause). Dependency ranges remain as supplied
+  in ml/requirements.txt; CI validates the resulting image using real inference.
+- EGRUL/EGRIP/FNS/BKI are explicit local synthetic fixtures. No paid APIs are used.
+- Offers, document exchange/signing and disbursement remain planned endpoints
+  returning HTTP 501. No real financial or legal operations are performed.
 - Original task documents and the HTML prototype were supplied by the project owner;
   third-party names and trademarks remain the property of their respective owners.

@@ -1,12 +1,13 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { createDraft, pages, products, profiles } from './data/demo'
 import {
-  createCases,
-  createDraft,
-  pages,
-  products,
-  profiles,
-} from './data/demo'
+  api,
+  setToken,
+  hasToken,
+  draftPayload,
+  normalizeApplication,
+} from './api'
 import HomePage from './pages/HomePage.vue'
 import ProductsPage from './pages/ProductsPage.vue'
 import ApplyPage from './pages/ApplyPage.vue'
@@ -20,69 +21,206 @@ import AppIcon from './components/AppIcon.vue'
 const dark = ref(false)
 const profileId = ref('')
 const view = ref('home')
-const cases = reactive(createCases())
-const chosenId = ref(cases[0].id)
-const clients = reactive(
+const applications = ref([])
+const cases = ref([])
+const chosenId = ref('')
+const history = ref([])
+const busy = ref(false)
+const error = ref('')
+let generation = 0
+let submissionKey = ''
+const drafts = reactive(
   Object.fromEntries(
     profiles
-      .filter((profile) => profile.role === 'client')
-      .map((profile) => {
-        const draft = createDraft(profile)
-        return [profile.id, { draft, application: { ...draft }, stage: 2 }]
-      }),
+      .filter((p) => p.role === 'client')
+      .map((p) => [p.id, createDraft(p)]),
   ),
 )
-const profile = computed(() =>
-  profiles.find((item) => item.id === profileId.value),
+const profile = computed(() => profiles.find((p) => p.id === profileId.value))
+const draft = computed(() => drafts[profileId.value])
+const selectedApplication = computed(
+  () =>
+    applications.value.find((a) => a.id === chosenId.value) ||
+    applications.value[0] ||
+    null,
 )
-const client = computed(() => clients[profileId.value])
+const latest = computed(() => applications.value[0] || null)
+const selectedCase = computed(
+  () =>
+    cases.value.find((a) => a.id === chosenId.value) || cases.value[0] || null,
+)
 const applicationProduct = computed(() =>
-  products.find((item) => item.id === client.value?.application.productId),
-)
-const selectedCase = computed(() =>
-  cases.find((item) => item.id === chosenId.value),
+  products.find((p) => p.id === latest.value?.productId),
 )
 const tabs = computed(() =>
   profile.value?.role === 'bank'
     ? ['queue', 'detail']
     : ['home', 'products', 'apply', 'applications', 'news', 'profile'],
 )
+watch(view, () => window.scrollTo({ top: 0 }), { flush: 'post' })
 
-watch([view, profileId], () => window.scrollTo({ top: 0 }), {
-  flush: 'post',
-})
-
-function selectProfile(id) {
-  profileId.value = id
-  view.value =
-    profiles.find((item) => item.id === id)?.role === 'bank' ? 'queue' : 'home'
+async function run(action) {
+  if (busy.value) return
+  busy.value = true
+  error.value = ''
+  try {
+    return await action()
+  } catch (e) {
+    error.value = e.message
+    if (e.status === 401) {
+      setToken('')
+      profileId.value = ''
+    }
+  } finally {
+    busy.value = false
+  }
 }
-
+async function refreshData() {
+  const current = generation
+  const bank = profile.value?.role === 'bank'
+  const path = bank ? 'bank/applications/' : 'applications/'
+  const all = []
+  let page = 1
+  while (true) {
+    const result = await api(`${path}?page_size=100&page=${page}`)
+    if (current !== generation) return
+    all.push(...result.results.map(normalizeApplication))
+    if (!result.next) break
+    page++
+  }
+  if (bank) cases.value = all
+  else applications.value = all
+  if (!all.some((a) => a.id === chosenId.value))
+    chosenId.value = all[0]?.id || ''
+  if (chosenId.value && all.some((a) => a.id === chosenId.value))
+    await loadHistory(chosenId.value, bank)
+}
+async function loadHistory(id, bank = profile.value?.role === 'bank') {
+  const current = generation
+  const result = await api(`${bank ? 'bank/' : ''}applications/${id}/history/`)
+  if (current === generation) history.value = result
+}
+async function establish(id) {
+  profileId.value = id
+  applications.value = []
+  cases.value = []
+  history.value = []
+  chosenId.value = ''
+  view.value = profile.value.role === 'bank' ? 'queue' : 'home'
+  if (profile.value.role === 'client') {
+    const company = await api('company/')
+    // The server owns company/financial defaults; the local profile supplies presentation labels.
+    Object.assign(profile.value, {
+      company: company.name,
+      inn: company.inn,
+      ogrn: company.ogrn,
+      industry: company.industry,
+      revenue: company.monthly_revenue,
+      payments: company.current_monthly_payments,
+    })
+    drafts[id] = createDraft(profile.value)
+  }
+  await refreshData()
+}
+function selectProfile(id) {
+  if (busy.value) return
+  run(async () => {
+    generation++
+    const result = await api('auth/demo-login/', {
+      method: 'POST',
+      data: { profile_id: id },
+    })
+    setToken(result.token)
+    submissionKey = ''
+    await establish(result.user.profile_id)
+  })
+}
+function logout() {
+  run(async () => {
+    await api('auth/logout/', { method: 'POST' })
+    generation++
+    setToken('')
+    profileId.value = ''
+    applications.value = []
+    cases.value = []
+  })
+}
+function navigate(tab) {
+  view.value = tab
+  if (['home', 'applications', 'queue', 'detail'].includes(tab))
+    run(refreshData)
+}
 function selectProduct(id) {
-  const selected = products.find((item) => item.id === id)
-  const draft = client.value.draft
-  draft.productId = id
-  draft.amount = Math.max(
-    selected.minAmount,
-    Math.min(selected.maxAmount, draft.amount),
-  )
-  draft.months = Math.max(
-    selected.minTerm,
-    Math.min(selected.maxTerm, draft.months),
-  )
+  const product = products.find((p) => p.id === id)
+  Object.assign(draft.value, {
+    productId: id,
+    amount: Math.max(
+      product.minAmount,
+      Math.min(product.maxAmount, draft.value.amount),
+    ),
+    months: Math.max(
+      product.minTerm,
+      Math.min(product.maxTerm, draft.value.months),
+    ),
+  })
+  submissionKey = ''
   view.value = 'apply'
 }
-
 function submitApplication() {
-  client.value.application = { ...client.value.draft }
-  client.value.stage = 0
-  view.value = 'applications'
+  run(async () => {
+    submissionKey ||= crypto.randomUUID()
+    const saved = await api('applications/', {
+      method: 'POST',
+      data: draftPayload(draft.value),
+      key: submissionKey,
+    })
+    chosenId.value = saved.id
+    await api(`applications/${saved.id}/submit/`, { method: 'POST' })
+    submissionKey = ''
+    await refreshData()
+    view.value = 'applications'
+  })
 }
-
+function submitDraft(id) {
+  run(async () => {
+    await api(`applications/${id}/submit/`, { method: 'POST' })
+    chosenId.value = id
+    await refreshData()
+  })
+}
+function cancelApplication(id) {
+  if (!confirm('Отменить эту заявку?')) return
+  run(async () => {
+    await api(`applications/${id}/cancel/`, { method: 'POST', data: {} })
+    await refreshData()
+  })
+}
+function openApplication(id) {
+  chosenId.value = id
+  view.value = 'applications'
+  run(() => loadHistory(id))
+}
 function openCase(id) {
   chosenId.value = id
   view.value = 'detail'
+  run(() => loadHistory(id, true))
 }
+function decide(values) {
+  run(async () => {
+    await api(`bank/applications/${selectedCase.value.id}/decisions/`, {
+      method: 'POST',
+      data: values,
+    })
+    await refreshData()
+  })
+}
+onMounted(() => {
+  if (hasToken())
+    run(async () => {
+      const user = await api('auth/me/')
+      await establish(user.profile_id)
+    })
+})
 </script>
 
 <template>
@@ -91,7 +229,7 @@ function openCase(id) {
       <button
         class="brand"
         aria-label="Альфа.Поток — главная"
-        @click="view = profile?.role === 'bank' ? 'queue' : 'home'"
+        @click="navigate(profile?.role === 'bank' ? 'queue' : 'home')"
       >
         <span class="brand-name"><span>Альфа.</span>Поток</span>
         <span class="demo-badge">Демо</span>
@@ -103,7 +241,7 @@ function openCase(id) {
           class="nav"
           :class="{ active: view === tab }"
           :aria-current="view === tab ? 'page' : undefined"
-          @click="view = tab"
+          @click="navigate(tab)"
         >
           {{ pages[tab].title }}
         </button>
@@ -114,6 +252,7 @@ function openCase(id) {
           <select
             aria-label="Демо-профиль"
             :value="profileId"
+            :disabled="busy"
             @change="selectProfile($event.target.value)"
           >
             <option v-for="item in profiles" :key="item.id" :value="item.id">
@@ -151,7 +290,7 @@ function openCase(id) {
           class="icon-button logout-button"
           aria-label="Выйти"
           title="Выйти"
-          @click="profileId = ''"
+          @click="logout"
         >
           <AppIcon name="logout" />
         </button>
@@ -160,6 +299,12 @@ function openCase(id) {
         >
       </div>
     </header>
+    <div v-if="error" class="app-feedback error-feedback" role="alert">
+      {{ error }}<button class="link" @click="error = ''">Закрыть</button>
+    </div>
+    <div v-if="busy" class="app-feedback" role="status">
+      Выполняется запрос…
+    </div>
     <Transition name="session" mode="out-in" appear>
       <main v-if="!profile" v-reveal key="profiles" class="profile-picker">
         <section class="welcome-copy">
@@ -197,6 +342,7 @@ function openCase(id) {
               v-for="(item, index) in profiles"
               :key="item.id"
               class="profile-card"
+              :disabled="busy"
               :class="`profile-${item.id}`"
               :style="{ '--profile-delay': `${index * 75 + 160}ms` }"
               @click="selectProfile(item.id)"
@@ -230,7 +376,7 @@ function openCase(id) {
             :title="pages[tab].title"
             :aria-label="pages[tab].title"
             :aria-current="view === tab ? 'page' : undefined"
-            @click="view = tab"
+            @click="navigate(tab)"
           >
             <AppIcon :name="tab" /><span>{{ pages[tab].title }}</span>
           </button>
@@ -240,7 +386,7 @@ function openCase(id) {
             <span class="demo-dot"></span> Демо-кабинет
             <span class="notice-divider">/</span> {{ profile.company
             }}<span class="notice-local"
-              >Данные сохраняются до обновления страницы</span
+              >Заявки и решения сохраняются в базе данных</span
             >
           </div>
           <Transition name="page" mode="out-in" appear>
@@ -248,10 +394,10 @@ function openCase(id) {
               <HomePage
                 v-if="view === 'home'"
                 :profile="profile"
-                :application="client.application"
+                :application="latest"
+                :applications="applications"
                 :product="applicationProduct"
-                :stage="client.stage"
-                @navigate="view = $event"
+                @navigate="navigate"
               />
               <ProductsPage
                 v-else-if="view === 'products'"
@@ -259,17 +405,23 @@ function openCase(id) {
               />
               <ApplyPage
                 v-else-if="view === 'apply'"
-                v-model="client.draft"
+                v-model="drafts[profileId]"
                 :profile="profile"
+                :busy="busy"
                 @submit="submitApplication"
+                @changed="submissionKey = ''"
               />
               <ApplicationsPage
                 v-else-if="view === 'applications'"
-                :application="client.application"
-                :product="applicationProduct"
-                :stage="client.stage"
-                :profile="profile"
-                @stage="client.stage = $event"
+                :applications="applications"
+                :application="selectedApplication"
+                :history="history"
+                :busy="busy"
+                @open="openApplication"
+                @refresh="run(refreshData)"
+                @create="view = 'apply'"
+                @submit="submitDraft"
+                @cancel="cancelApplication"
               />
               <NewsPage v-else-if="view === 'news'" :profile="profile" />
               <ProfilePage v-else-if="view === 'profile'" :profile="profile" />
@@ -281,8 +433,10 @@ function openCase(id) {
               <BankDetailPage
                 v-else-if="view === 'detail'"
                 :application="selectedCase"
+                :history="history"
+                :busy="busy"
                 @back="view = 'queue'"
-                @decision="selectedCase.decision = $event"
+                @decision="decide"
               />
             </div>
           </Transition>

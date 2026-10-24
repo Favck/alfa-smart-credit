@@ -12,6 +12,7 @@ docker ps --format '{{.Names}}|{{.ID}}' | sort > /opt/alfa-potok/neighbors.befor
 sha256sum /etc/nginx/sites-enabled/* > /opt/alfa-potok/nginx.before
 install -d -m 700 -o 10001 -g 10001 /opt/alfa-potok/data
 install -m 600 compose.production.yaml /opt/alfa-potok/compose.yaml
+install -m 600 compose.production.yaml /opt/alfa-potok/last-good-compose.yaml
 install -m 755 server-deploy.sh /usr/local/sbin/alfa-potok-deploy
 umask 077
 python3 - <<'PY' > /opt/alfa-potok/.env
