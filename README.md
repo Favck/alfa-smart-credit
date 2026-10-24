@@ -125,8 +125,8 @@ CI делает это автоматически. В frontend: `npm ci && npm r
 `python -m black --check .`, `python -m flake8 .`.
 
 Проверка неизменности модели: `git diff --exit-code 50af371 -- ml`.
-Версия сдаваемого результата фиксируется тегом `hackathon-itigers-2026-10-24`;
-его SHA: `git rev-parse hackathon-itigers-2026-10-24`. Дедлайн организаторов
+Версия сдаваемого результата фиксируется тегом `hackathon-itigers-v1`;
+его SHA: `git rev-parse hackathon-itigers-v1`. Дедлайн организаторов
 в репозиторий не закладывается; команда сверяет его отдельно.
 
 ## Ограничения прототипа
