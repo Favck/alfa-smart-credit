@@ -243,10 +243,12 @@ class Document(s.Serializer):
 
 
 class DocumentUpload(s.Serializer):
-    kind = s.ChoiceField(choices=["statement", "additional"])
+    kind = s.ChoiceField(
+        choices=["statement", "additional"], default="additional"
+    )
     file = s.FileField(
         help_text=(
-            "План: PDF/XLSX, до 10 МиБ; хранение для просмотра "
+            "PDF/XLSX, до 10 МиБ; хранение для просмотра "
             "сотрудником, без OCR."
         )
     )
@@ -391,6 +393,9 @@ class MLPreview(PrePredict):
 
 class LiveApplication(Application):
     client_scoring = ClientScoring()
+    current_offer = Offer(allow_null=True)
+    info_request = InfoRequest(allow_null=True)
+    disbursement = s.DictField(allow_null=True)
 
 
 class LiveApplicationPage(ApplicationPage):
@@ -411,3 +416,38 @@ class LiveBankApplicationPage(ApplicationPage):
 class ManualDecision(s.Serializer):
     verdict = s.ChoiceField(choices=["approve", "reject"])
     reason = s.CharField(max_length=2000, allow_blank=False)
+
+
+class WorkflowDecision(DecisionWrite):
+    annual_rate_percent = s.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        min_value=0,
+        max_value=100,
+        required=False,
+    )
+
+    def validate(self, attrs):
+        verdict = attrs["verdict"]
+        if verdict == "counter":
+            for key in ["amount", "term_months", "annual_rate_percent"]:
+                if key not in attrs:
+                    raise s.ValidationError(
+                        {key: "Укажите встречные условия."}
+                    )
+        if verdict == "need_info":
+            allowed = {"monthly_revenue", "current_monthly_payments"}
+            if set(attrs.get("requested_fields", [])) - allowed:
+                raise s.ValidationError(
+                    {"requested_fields": "Неизвестное поле."}
+                )
+            if not attrs.get("requested_fields") and not attrs.get(
+                "document_required"
+            ):
+                raise s.ValidationError("Укажите поля или запросите документ.")
+        return attrs
+
+
+class LiveDocument(Document):
+    sha256 = s.CharField()
+    signed_at = s.DateTimeField(allow_null=True)

@@ -50,6 +50,25 @@ def record(application, before, after, message, role="system"):
 def serialize(application, bank=False):
     data = dict(S.Application(application).data)
     data["client_scoring"] = scoring.client_result(application)
+    offer = application.offers.exclude(status="declined").first()
+    info = application.info_requests.filter(status="open").first()
+    receipt = getattr(application, "disbursement", None)
+    data.update(
+        current_offer=S.Offer(offer).data if offer else None,
+        info_request=S.InfoRequest(info).data if info else None,
+        disbursement=(
+            {
+                "id": str(receipt.id),
+                "amount": receipt.amount,
+                "account": receipt.account,
+                "reference": receipt.reference,
+                "simulated": True,
+                "created_at": receipt.created_at.isoformat(),
+            }
+            if receipt
+            else None
+        ),
+    )
     if bank:
         data.update(
             company=application.company,
@@ -276,7 +295,15 @@ class SubmitView(ClientAPI):
             )
             if not changed:
                 application.refresh_from_db()
-                if application.status in {"APPROVED", "REJECTED", "REVIEW"}:
+                if application.status in {
+                    "APPROVED",
+                    "REJECTED",
+                    "REVIEW",
+                    "COUNTER_OFFER",
+                    "SIGNING",
+                    "DISBURSED",
+                    "NEED_INFO",
+                }:
                     return Response(serialize(application))
                 return Response(
                     {"detail": "Заявка уже обрабатывается или отменена."},
@@ -349,6 +376,10 @@ class SubmitView(ClientAPI):
                     actor_role="system",
                     application_status=status,
                 )
+                if status == "APPROVED":
+                    from .completion import issue_offer
+
+                    issue_offer(application, message)
         application.refresh_from_db()
         return Response(serialize(application))
 
@@ -368,7 +399,14 @@ class CancelView(ClientAPI):
             before = application.status
             changed = Application.objects.filter(
                 pk=application.pk,
-                status__in=["DRAFT", "REVIEW"],
+                status__in=[
+                    "DRAFT",
+                    "REVIEW",
+                    "NEED_INFO",
+                    "APPROVED",
+                    "COUNTER_OFFER",
+                    "SIGNING",
+                ],
                 status=before,
             ).update(status="CANCELLED", updated_at=timezone.now())
             if not changed:
@@ -383,6 +421,12 @@ class CancelView(ClientAPI):
                 values.validated_data.get("reason")
                 or "Заявка отменена клиентом.",
                 "client",
+            )
+            application.offers.filter(status="pending").update(
+                status="declined"
+            )
+            application.info_requests.filter(status="open").update(
+                status="cancelled"
             )
         application.refresh_from_db()
         return Response(serialize(application))
@@ -473,30 +517,12 @@ class BankDecisionsView(BankAPI):
 
     @extend_schema(
         tags=["Банк"],
-        request=S.ManualDecision,
+        request=S.WorkflowDecision,
         responses={201: S.Decision, 409: S.Error},
-        summary="Одобрить или отклонить заявку на ручном рассмотрении",
+        summary="Решение, встречные условия или дозапрос по заявке",
     )
     def post(self, request, application_id):
         application = application_for(request, application_id, True)
-        values = S.ManualDecision(data=request.data)
-        values.is_valid(raise_exception=True)
-        verdict = values.validated_data["verdict"]
-        status = "APPROVED" if verdict == "approve" else "REJECTED"
-        with transaction.atomic():
-            changed = Application.objects.filter(
-                pk=application.pk, status="REVIEW"
-            ).update(status=status, updated_at=timezone.now())
-            if not changed:
-                return Response(
-                    {"detail": "Заявка не на ручном рассмотрении."},
-                    status=409,
-                )
-            decision = Decision.objects.create(
-                application=application,
-                actor_role="bank",
-                application_status=status,
-                **values.validated_data,
-            )
-            record(application, "REVIEW", status, decision.reason, "bank")
-        return Response(S.Decision(decision).data, status=201)
+        from .completion import bank_decision
+
+        return bank_decision(request, application)

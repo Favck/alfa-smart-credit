@@ -6,14 +6,15 @@ export const setToken = (value) => {
 }
 export const hasToken = () => Boolean(token)
 export async function api(path, { method = 'GET', data, key } = {}) {
+  const multipart = data instanceof FormData
   const response = await fetch('/api/v1/' + path, {
     method,
     headers: {
       ...(token ? { Authorization: `Token ${token}` } : {}),
-      ...(data ? { 'Content-Type': 'application/json' } : {}),
+      ...(data && !multipart ? { 'Content-Type': 'application/json' } : {}),
       ...(key ? { 'Idempotency-Key': key } : {}),
     },
-    ...(data ? { body: JSON.stringify(data) } : {}),
+    ...(data ? { body: multipart ? data : JSON.stringify(data) } : {}),
   })
   if (response.status === 204) return null
   const body = await response.json().catch(() => ({}))
@@ -27,6 +28,17 @@ export async function api(path, { method = 'GET', data, key } = {}) {
     throw error
   }
   return body
+}
+export async function documentBlob(applicationId, documentId) {
+  const response = await fetch(
+    `/api/v1/applications/${applicationId}/documents/${documentId}/download/`,
+    { headers: { Authorization: `Token ${token}` } },
+  )
+  if (!response.ok)
+    throw new Error(
+      'Не удалось скачать документ. Обновите сессию и повторите попытку.',
+    )
+  return response.blob()
 }
 export const draftPayload = (draft) => ({
   product_id: draft.productId,

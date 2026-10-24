@@ -108,7 +108,7 @@ class ApiSmokeTests(APITestCase):
         )
         self.assertEqual(self.client.get("/api/v1/news/999/").status_code, 404)
 
-    def test_planned_operations_are_explicit(self):
+    def test_completed_api_has_no_planned_endpoints(self):
         self.login_as("green")
         self.assertEqual(
             self.client.post(
@@ -121,8 +121,7 @@ class ApiSmokeTests(APITestCase):
             {},
             format="json",
         )
-        self.assertEqual(response.status_code, 501)
-        self.assertEqual(response.data["code"], "not_implemented")
+        self.assertEqual(response.status_code, 404)
         schema = SchemaGenerator().get_schema(request=None, public=True)
         for path, methods in schema["paths"].items():
             for method, operation in methods.items():
@@ -132,11 +131,11 @@ class ApiSmokeTests(APITestCase):
                     "patch",
                     "delete",
                     "put",
-                } and "[ПЛАН]" in operation.get("summary", ""):
-                    self.assertIn("501", operation["responses"], path)
-                    self.assertEqual(
-                        operation["x-implementation-status"], "planned"
+                }:
+                    self.assertNotIn(
+                        "[ПЛАН]", operation.get("summary", ""), path
                     )
+                    self.assertNotIn("501", operation["responses"], path)
 
     def test_seed_is_repeatable_and_does_not_revoke_login(self):
         self.login_as("green")

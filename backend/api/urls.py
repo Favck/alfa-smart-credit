@@ -1,5 +1,6 @@
 from django.urls import path
 
+from . import completion as C
 from . import pipeline as P
 from . import views as V
 
@@ -26,37 +27,37 @@ urlpatterns = [
         "applications/<uuid:application_id>/scoring/",
         P.ClientScoringView.as_view(),
     ),
-    path("applications/<uuid:application_id>/offer/", V.OfferView.as_view()),
+    path("applications/<uuid:application_id>/offer/", C.OfferView.as_view()),
     path(
         "applications/<uuid:application_id>/offers/<uuid:offer_id>/accept/",
-        V.AcceptOfferView.as_view(),
+        C.AcceptOfferView.as_view(),
     ),
     path(
         "applications/<uuid:application_id>/offers/<uuid:offer_id>/decline/",
-        V.DeclineOfferView.as_view(),
+        C.DeclineOfferView.as_view(),
     ),
     path(
         "applications/<uuid:application_id>/documents/",
-        V.DocumentsView.as_view(),
+        C.DocumentsView.as_view(),
     ),
     path(
         (
             "applications/<uuid:application_id>/documents/<uuid"
             ":document_id>/download/"
         ),
-        V.DocumentDownloadView.as_view(),
+        C.DocumentDownloadView.as_view(),
     ),
-    path("applications/<uuid:application_id>/sign/", V.SignView.as_view()),
+    path("applications/<uuid:application_id>/sign/", C.SignView.as_view()),
     path(
         "applications/<uuid:application_id>/info-request/",
-        V.InfoRequestView.as_view(),
+        C.InfoRequestView.as_view(),
     ),
     path(
         (
             "applications/<uuid:application_id>/info-requests/<"
             "uuid:info_request_id>/respond/"
         ),
-        V.InfoResponseView.as_view(),
+        C.InfoResponseView.as_view(),
     ),
     path("bank/applications/", P.BankQueueView.as_view()),
     path(
@@ -73,6 +74,6 @@ urlpatterns = [
     ),
     path(
         "bank/applications/<uuid:application_id>/documents/",
-        V.BankDocumentsView.as_view(),
+        C.BankDocumentsView.as_view(),
     ),
 ]

@@ -1,4 +1,5 @@
 <script setup>
+import ApplicationJourney from '../components/ApplicationJourney.vue'
 import PageHeading from '../components/PageHeading.vue'
 import AppIcon from '../components/AppIcon.vue'
 import UiButton from '../components/UiButton.vue'
@@ -7,9 +8,23 @@ defineProps({
   applications: Array,
   application: Object,
   history: Array,
+  documents: Array,
   busy: Boolean,
 })
-defineEmits(['open', 'refresh', 'create', 'submit', 'cancel'])
+defineEmits([
+  'open',
+  'refresh',
+  'create',
+  'submit',
+  'cancel',
+  'edit',
+  'accept',
+  'decline',
+  'sign',
+  'reply',
+  'upload',
+  'error',
+])
 const productName = (id) => products.find((p) => p.id === id)?.name || id
 const date = (value) => new Date(value).toLocaleString('ru-RU')
 </script>
@@ -86,6 +101,13 @@ const date = (value) => new Date(value).toLocaleString('ru-RU')
       </div>
       <div class="flex wrap mt">
         <UiButton
+          v-if="application.status === 'DRAFT'"
+          alt
+          :disabled="busy"
+          @click="$emit('edit', application.id)"
+          >Редактировать черновик</UiButton
+        >
+        <UiButton
           v-if="['DRAFT', 'SCORING'].includes(application.status)"
           :disabled="busy"
           @click="$emit('submit', application.id)"
@@ -95,17 +117,34 @@ const date = (value) => new Date(value).toLocaleString('ru-RU')
               : 'Повторить обработку'
           }}</UiButton
         ><UiButton
-          v-if="['DRAFT', 'REVIEW'].includes(application.status)"
+          v-if="
+            [
+              'DRAFT',
+              'REVIEW',
+              'NEED_INFO',
+              'APPROVED',
+              'COUNTER_OFFER',
+              'SIGNING',
+            ].includes(application.status)
+          "
           alt
           :disabled="busy"
           @click="$emit('cancel', application.id)"
           >Отменить заявку</UiButton
         >
       </div>
-      <p v-if="application.status === 'APPROVED'" class="muted small mt">
-        Оценка завершена. Предложение банка, договор и подписание — следующий
-        этап проекта.
-      </p>
+      <ApplicationJourney
+        :key="application.id"
+        :application="application"
+        :documents="documents"
+        :busy="busy"
+        @accept="$emit('accept', $event)"
+        @decline="$emit('decline', $event)"
+        @sign="$emit('sign', $event)"
+        @reply="$emit('reply', $event)"
+        @upload="$emit('upload', $event)"
+        @error="$emit('error', $event)"
+      />
       <h3 class="mt">История заявки</h3>
       <p v-if="!history.length" class="muted small">
         Выберите заявку в списке, чтобы загрузить историю.

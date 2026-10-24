@@ -34,10 +34,18 @@ Synthetic/local data:
   synthetic-data training script. Its source, dependencies and model artifact
   are consumed unchanged by Django through an internal HTTP adapter.
 - ML components: LightGBM (MIT), NumPy (BSD-3-Clause), FastAPI (MIT),
-  Pydantic (MIT), Uvicorn (BSD-3-Clause). Dependency ranges remain as supplied
-  in ml/requirements.txt; CI validates the resulting image using real inference.
+  Pydantic (MIT), Uvicorn (BSD-3-Clause). Original dependency ranges remain in ml/requirements.txt; deploy/ml-constraints.txt
+  pins the verified Linux environment without modifying ml/. CI runs real inference.
 - EGRUL/EGRIP/FNS/BKI are explicit local synthetic fixtures. No paid APIs are used.
-- Offers, document exchange/signing and disbursement remain planned endpoints
-  returning HTTP 501. No real financial or legal operations are performed.
+- Offers, file exchange, local PDF contracts, simulated signing and disbursement
+  are implemented. No real financial or legal operations are performed.
+- PDF dependencies: ReportLab (BSD), pypdf (BSD-3-Clause), Pillow (MIT-CMU),
+  charset-normalizer (MIT). DejaVu Sans (Bitstream Vera / DejaVu terms) is
+  installed from Debian fonts-dejavu-core in backend images.
+- ML transitive dependencies include SciPy (BSD-3-Clause), Starlette (BSD-3-Clause),
+  AnyIO (MIT), uvloop (MIT/Apache-2.0), httptools (MIT), watchfiles (MIT),
+  websockets (BSD-3-Clause), python-dotenv (BSD-3-Clause); see pinned constraints.
+- No third-party customer dataset is used; the supplied model and its generator
+  use synthetic data. Real borrower quality and calibration are not established.
 - Original task documents and the HTML prototype were supplied by the project owner;
   third-party names and trademarks remain the property of their respective owners.

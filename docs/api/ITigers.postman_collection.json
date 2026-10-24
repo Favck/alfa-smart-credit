@@ -1,0 +1,939 @@
+{
+  "info": {
+    "name": "ITigers · Альфа.Поток",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Два отдельных сценария: 01–14 для green; для дозапроса повторить 02 с profile=yellow, создать заявку (07), отправить (08), затем 15–22, 09, 11–14. Шаг 02b берёт параметры текущей компании автоматически. 23/24/25 — альтернативные действия, не запускать все подряд на завершённой заявке. Загрузка файла выбирается вручную в Postman. Все операции синтетические."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://alpha.srv-node.com/api/v1"
+    },
+    {
+      "key": "profile",
+      "value": "green"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "bankToken",
+      "value": ""
+    },
+    {
+      "key": "applicationId",
+      "value": ""
+    },
+    {
+      "key": "offerId",
+      "value": ""
+    },
+    {
+      "key": "documentId",
+      "value": ""
+    },
+    {
+      "key": "infoRequestId",
+      "value": ""
+    },
+    {
+      "key": "attachmentId",
+      "value": ""
+    },
+    {
+      "key": "revenue",
+      "value": "1500000"
+    },
+    {
+      "key": "payments",
+      "value": "40000"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "02 Войти клиентом green (yellow для ручной ветки)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/demo-login/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "demo-login",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"profile_id\": \"{{profile}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);",
+              "pm.collectionVariables.set('token',pm.response.json().token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02b Данные компании для параметров клиента",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/company/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const c=pm.response.json();pm.collectionVariables.set('revenue',c.monthly_revenue);pm.collectionVariables.set('payments',c.current_monthly_payments);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Продукты",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/products/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "products",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "04 Персональные статьи",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/news/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "news",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "05 Полный материал",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/news/1/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "news",
+            "1",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "06 Предварительная оценка",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/scoring/pre-predict/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "scoring",
+            "pre-predict",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_id\": \"working_capital\",\n  \"amount\": 2000000,\n  \"term_months\": 24,\n  \"purpose\": \"ITigers: проверка сквозного пути\",\n  \"monthly_revenue\": {{revenue}},\n  \"current_monthly_payments\": {{payments}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "07 Сохранить черновик",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/applications/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "applications",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_id\": \"working_capital\",\n  \"amount\": 2000000,\n  \"term_months\": 24,\n  \"purpose\": \"ITigers: проверка сквозного пути\",\n  \"monthly_revenue\": {{revenue}},\n  \"current_monthly_payments\": {{payments}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(201);",
+              "pm.collectionVariables.set('applicationId',pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Отправить",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/applications/{{applicationId}}/submit/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "applications",
+            "{{applicationId}}",
+            "submit",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);",
+              "const a=pm.response.json(); if(a.current_offer)pm.collectionVariables.set('offerId',a.current_offer.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Карточка / сохранённый статус",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/applications/{{applicationId}}/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "applications",
+            "{{applicationId}}",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const a=pm.response.json();if(a.current_offer)pm.collectionVariables.set('offerId',a.current_offer.id);if(a.info_request)pm.collectionVariables.set('infoRequestId',a.info_request.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 История",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/applications/{{applicationId}}/history/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "applications",
+            "{{applicationId}}",
+            "history",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "11 Принять оффер (APPROVED / COUNTER_OFFER)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/applications/{{applicationId}}/offers/{{offerId}}/accept/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "applications",
+            "{{applicationId}}",
+            "offers",
+            "{{offerId}}",
+            "accept",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "12 Документы / запомнить договор",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/applications/{{applicationId}}/documents/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "applications",
+            "{{applicationId}}",
+            "documents",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);const d=pm.response.json().find(d=>d.kind==='contract');if(d)pm.collectionVariables.set('documentId',d.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Скачать PDF",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/applications/{{applicationId}}/documents/{{documentId}}/download/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "applications",
+            "{{applicationId}}",
+            "documents",
+            "{{documentId}}",
+            "download",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "14 Подписать и смоделировать выдачу",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/applications/{{applicationId}}/sign/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "applications",
+            "{{applicationId}}",
+            "sign",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"document_id\": \"{{documentId}}\",\n  \"consent\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);pm.expect(pm.response.json().status).to.eql('DISBURSED');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 Войти сотрудником (отдельный token)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/demo-login/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "demo-login",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"profile_id\": \"underwriter\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('bankToken',pm.response.json().token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 Очередь банка",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{bankToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/bank/applications/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "bank",
+            "applications",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "17 Карточка банка",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{bankToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/bank/applications/{{applicationId}}/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "bank",
+            "applications",
+            "{{applicationId}}",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "18 Дозапрос (только REVIEW)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{bankToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/bank/applications/{{applicationId}}/decisions/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "bank",
+            "applications",
+            "{{applicationId}}",
+            "decisions",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"verdict\": \"need_info\",\n  \"reason\": \"Подтвердите выручку выпиской\",\n  \"requested_fields\": [\n    \"monthly_revenue\"\n  ],\n  \"document_required\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "19 Получить дозапрос",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/applications/{{applicationId}}/info-request/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "applications",
+            "{{applicationId}}",
+            "info-request",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if(pm.response.code===200)pm.collectionVariables.set('infoRequestId',pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "20 Загрузить PDF/XLSX (выбрать docs/samples/demo-statement.pdf)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/applications/{{applicationId}}/documents/",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            },
+            {
+              "key": "kind",
+              "type": "text",
+              "value": "statement"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if(pm.response.code===201)pm.collectionVariables.set('attachmentId',pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "21 Ответить на дозапрос",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/applications/{{applicationId}}/info-requests/{{infoRequestId}}/respond/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "applications",
+            "{{applicationId}}",
+            "info-requests",
+            "{{infoRequestId}}",
+            "respond",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"monthly_revenue\": 700000,\n  \"message\": \"Выручка уточнена, выписка приложена\",\n  \"document_ids\": [\n    \"{{attachmentId}}\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "22 Встречное предложение (REVIEW)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{bankToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/bank/applications/{{applicationId}}/decisions/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "bank",
+            "applications",
+            "{{applicationId}}",
+            "decisions",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"verdict\": \"counter\",\n  \"reason\": \"Предлагаем посильный лимит после проверки\",\n  \"amount\": 900000,\n  \"term_months\": 24,\n  \"annual_rate_percent\": 22\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "23 Ручное одобрение (REVIEW)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{bankToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/bank/applications/{{applicationId}}/decisions/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "bank",
+            "applications",
+            "{{applicationId}}",
+            "decisions",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"verdict\": \"approve\",\n  \"reason\": \"Документы и финансовые сведения проверены\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "24 Ручной отказ (REVIEW)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{bankToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/bank/applications/{{applicationId}}/decisions/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "bank",
+            "applications",
+            "{{applicationId}}",
+            "decisions",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"verdict\": \"reject\",\n  \"reason\": \"Риск признан неприемлемым по демонстрационной политике\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "25 Отклонить оффер (до принятия)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/applications/{{applicationId}}/offers/{{offerId}}/decline/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "applications",
+            "{{applicationId}}",
+            "offers",
+            "{{offerId}}",
+            "decline",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

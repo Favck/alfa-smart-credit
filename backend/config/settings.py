@@ -14,6 +14,8 @@ ML_BASE_URL = os.environ.get("ML_BASE_URL", "http://127.0.0.1:8001")
 ML_TIMEOUT_SECONDS = min(
     15, max(0.1, float(os.environ.get("ML_TIMEOUT_SECONDS", "2.5")))
 )
+DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -153,25 +155,25 @@ SPECTACULAR_SETTINGS = {
         },
         {
             "name": "Заявки",
-            "description": "[ПЛАН] Создание, черновики и движение заявки.",
+            "description": "Создание, черновики и движение заявки.",
         },
         {
             "name": "Скоринг",
             "description": (
-                "[ПЛАН] Предварительный расчёт и понятное " "объяснение риска."
+                "Предварительный расчёт и понятное " "объяснение риска."
             ),
         },
         {
             "name": "Документы",
-            "description": "[ПЛАН] Выписки, договор и имитация подписания.",
+            "description": "Выписки, договор и имитация подписания.",
         },
         {
             "name": "Офферы",
-            "description": "[ПЛАН] Условия банка и ответ клиента.",
+            "description": "Условия банка и ответ клиента.",
         },
         {
             "name": "Банк",
-            "description": "[ПЛАН] Очередь и решения андеррайтера.",
+            "description": "Очередь и решения андеррайтера.",
         },
     ],
 }

@@ -12,7 +12,9 @@ const props = defineProps({
   applications: { type: Array, default: () => [] },
 })
 defineEmits(['navigate'])
-const approved = computed(() => props.application?.status === 'APPROVED')
+const approved = computed(() =>
+  ['APPROVED', 'SIGNING', 'DISBURSED'].includes(props.application?.status),
+)
 const status = computed(() => props.application?.status_label || 'Нет заявок')
 const stage = computed(
   () =>
@@ -24,6 +26,10 @@ const stage = computed(
       SCORING: 2,
       REVIEW: 3,
       APPROVED: 3,
+      NEED_INFO: 3,
+      COUNTER_OFFER: 3,
+      SIGNING: 4,
+      DISBURSED: 4,
       REJECTED: 3,
       CANCELLED: 0,
     })[props.application?.status] ?? 0,
@@ -32,6 +38,10 @@ const message = computed(
   () =>
     ({
       APPROVED: 'Заявка одобрена',
+      NEED_INFO: 'Нужны дополнительные сведения',
+      COUNTER_OFFER: 'Банк предложил новые условия',
+      SIGNING: 'Договор готов к подписанию',
+      DISBURSED: 'Финансирование выдано · демо',
       REJECTED: 'По заявке принято решение',
       CANCELLED: 'Заявка отменена',
       DRAFT: 'Продолжите оформление',
@@ -41,7 +51,8 @@ const message = computed(
 const activeCount = computed(
   () =>
     props.applications.filter(
-      (a) => !['DRAFT', 'REJECTED', 'CANCELLED'].includes(a.status),
+      (a) =>
+        !['DRAFT', 'REJECTED', 'CANCELLED', 'DISBURSED'].includes(a.status),
     ).length,
 )
 const totalAmount = computed(() =>
@@ -181,8 +192,8 @@ const totalAmount = computed(() =>
         /></UiButton>
         <div class="document-note">
           <AppIcon name="applications" /><span
-            >Результат и история сохранены. Договоры и подписание появятся на
-            следующем этапе проекта.</span
+            >Условия, документы и действия доступны в карточке заявки.
+            Подписание и выдача демонстрационные.</span
           >
         </div>
       </div>

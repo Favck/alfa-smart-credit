@@ -1,0 +1,10 @@
+.git
+.codex-finalizer
+**/node_modules
+**/__pycache__
+**/.venv
+backend/data
+backend/staticfiles
+frontend/dist
+deliverables
+docs

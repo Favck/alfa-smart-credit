@@ -25,6 +25,8 @@ const applications = ref([])
 const cases = ref([])
 const chosenId = ref('')
 const history = ref([])
+const documents = ref([])
+const editingId = ref('')
 const busy = ref(false)
 const error = ref('')
 let generation = 0
@@ -97,14 +99,23 @@ async function refreshData() {
 }
 async function loadHistory(id, bank = profile.value?.role === 'bank') {
   const current = generation
-  const result = await api(`${bank ? 'bank/' : ''}applications/${id}/history/`)
-  if (current === generation) history.value = result
+  const prefix = `${bank ? 'bank/' : ''}applications/${id}/`
+  const [events, files] = await Promise.all([
+    api(prefix + 'history/'),
+    api(prefix + 'documents/'),
+  ])
+  if (current === generation && chosenId.value === id) {
+    history.value = events
+    documents.value = files
+  }
 }
 async function establish(id) {
   profileId.value = id
   applications.value = []
   cases.value = []
   history.value = []
+  documents.value = []
+  editingId.value = ''
   chosenId.value = ''
   view.value = profile.value.role === 'bank' ? 'queue' : 'home'
   if (profile.value.role === 'client') {
@@ -146,11 +157,35 @@ function logout() {
   })
 }
 function navigate(tab) {
+  if (tab === 'apply') {
+    newApplication()
+    return
+  }
   view.value = tab
   if (['home', 'applications', 'queue', 'detail'].includes(tab))
     run(refreshData)
 }
+function newApplication() {
+  editingId.value = ''
+  submissionKey = ''
+  view.value = 'apply'
+}
+function editDraft(id) {
+  const app = applications.value.find((a) => a.id === id)
+  if (!app || app.status !== 'DRAFT') return
+  drafts[profileId.value] = {
+    productId: app.productId,
+    amount: app.amount,
+    months: app.months,
+    purpose: app.purpose,
+    revenue: app.revenue,
+    payments: app.payments,
+  }
+  editingId.value = id
+  view.value = 'apply'
+}
 function selectProduct(id) {
+  editingId.value = ''
   const product = products.find((p) => p.id === id)
   Object.assign(draft.value, {
     productId: id,
@@ -166,16 +201,23 @@ function selectProduct(id) {
   submissionKey = ''
   view.value = 'apply'
 }
-function submitApplication() {
+function submitApplication(send = true) {
   run(async () => {
     submissionKey ||= crypto.randomUUID()
-    const saved = await api('applications/', {
-      method: 'POST',
-      data: draftPayload(draft.value),
-      key: submissionKey,
-    })
+    const saved = await api(
+      editingId.value ? `applications/${editingId.value}/` : 'applications/',
+      {
+        method: editingId.value ? 'PATCH' : 'POST',
+        data: draftPayload(draft.value),
+        key: submissionKey,
+      },
+    )
     chosenId.value = saved.id
-    await api(`applications/${saved.id}/submit/`, { method: 'POST' })
+    editingId.value = saved.id
+    if (send) {
+      await api(`applications/${saved.id}/submit/`, { method: 'POST' })
+      editingId.value = ''
+    }
     submissionKey = ''
     await refreshData()
     view.value = 'applications'
@@ -211,6 +253,32 @@ function decide(values) {
       method: 'POST',
       data: values,
     })
+    await refreshData()
+  })
+}
+function journey(action, values) {
+  run(async () => {
+    const app = selectedApplication.value
+    const path = `applications/${app.id}/`
+    if (action === 'upload') {
+      for (const file of values) {
+        const form = new FormData()
+        form.append('file', file)
+        await api(path + 'documents/', { method: 'POST', data: form })
+      }
+    } else {
+      const route =
+        action === 'reply'
+          ? `info-requests/${values.id}/respond/`
+          : action === 'sign'
+            ? 'sign/'
+            : `offers/${values}/${action}/`
+      await api(path + route, {
+        method: 'POST',
+        data:
+          action === 'reply' ? values.values : action === 'sign' ? values : {},
+      })
+    }
     await refreshData()
   })
 }
@@ -408,7 +476,8 @@ onMounted(() => {
                 v-model="drafts[profileId]"
                 :profile="profile"
                 :busy="busy"
-                @submit="submitApplication"
+                @submit="submitApplication(true)"
+                @save="submitApplication(false)"
                 @changed="submissionKey = ''"
               />
               <ApplicationsPage
@@ -416,10 +485,18 @@ onMounted(() => {
                 :applications="applications"
                 :application="selectedApplication"
                 :history="history"
+                :documents="documents"
                 :busy="busy"
                 @open="openApplication"
                 @refresh="run(refreshData)"
-                @create="view = 'apply'"
+                @create="newApplication"
+                @edit="editDraft"
+                @accept="journey('accept', $event)"
+                @decline="journey('decline', $event)"
+                @sign="journey('sign', $event)"
+                @reply="journey('reply', $event)"
+                @upload="journey('upload', $event)"
+                @error="error = $event"
                 @submit="submitDraft"
                 @cancel="cancelApplication"
               />
@@ -434,9 +511,11 @@ onMounted(() => {
                 v-else-if="view === 'detail'"
                 :application="selectedCase"
                 :history="history"
+                :documents="documents"
                 :busy="busy"
                 @back="view = 'queue'"
                 @decision="decide"
+                @error="error = $event"
               />
             </div>
           </Transition>

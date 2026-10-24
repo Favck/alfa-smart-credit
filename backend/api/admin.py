@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import Application, Decision, StatusEvent
+from .models import (
+    Application,
+    Decision,
+    Disbursement,
+    Document,
+    InfoRequest,
+    Offer,
+    StatusEvent,
+)
 
 
 @admin.register(Application)
@@ -21,9 +29,18 @@ class ApplicationAdmin(admin.ModelAdmin):
         return False
 
 
-@admin.register(StatusEvent, Decision)
+@admin.register(StatusEvent, Decision, Offer, InfoRequest, Disbursement)
 class AuditAdmin(admin.ModelAdmin):
-    list_display = ["application", "actor_role", "created_at"]
+    list_display = ["application", "record_type", "created_at"]
+
+    @admin.display(description="Запись")
+    def record_type(self, obj):
+        return (
+            getattr(obj, "verdict", None)
+            or getattr(obj, "status", None)
+            or getattr(obj, "actor_role", None)
+            or "Демовыдача"
+        )
 
     def get_readonly_fields(self, request, obj=None):
         return [field.name for field in self.model._meta.fields]
@@ -33,3 +50,22 @@ class AuditAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Document)
+class DocumentAdmin(AuditAdmin):
+    list_display = [
+        "filename",
+        "application",
+        "kind",
+        "size_bytes",
+        "signed_at",
+    ]
+    exclude = ["content"]
+
+    def get_readonly_fields(self, request, obj=None):
+        return [
+            field.name
+            for field in self.model._meta.fields
+            if field.name != "content"
+        ]

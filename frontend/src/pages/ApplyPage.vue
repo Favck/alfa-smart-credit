@@ -11,7 +11,7 @@ const props = defineProps({
   profile: Object,
   busy: Boolean,
 })
-const emit = defineEmits(['update:modelValue', 'submit', 'changed'])
+const emit = defineEmits(['update:modelValue', 'submit', 'changed', 'save'])
 const product = computed(() =>
   products.find((item) => item.id === props.modelValue.productId),
 )
@@ -239,7 +239,16 @@ onBeforeUnmount(() => {
             <p class="small">{{ preview.method_note }}</p></template
           >
         </section>
-        <UiButton type="submit" :disabled="busy">Отправить заявку →</UiButton>
+        <div class="stack">
+          <UiButton type="submit" :disabled="busy">Отправить заявку →</UiButton
+          ><UiButton alt :disabled="busy" @click="$emit('save')"
+            >Сохранить черновик</UiButton
+          >
+        </div>
+        <p class="small muted mt">
+          Документы PDF или XLSX можно приложить к сохранённому черновику в
+          разделе «Мои заявки».
+        </p>
       </div>
     </div>
   </form>

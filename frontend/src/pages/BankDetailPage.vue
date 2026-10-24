@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
+import ApplicationJourney from '../components/ApplicationJourney.vue'
 import PageHeading from '../components/PageHeading.vue'
 import UiButton from '../components/UiButton.vue'
 import AppIcon from '../components/AppIcon.vue'
@@ -7,15 +8,47 @@ import { money, products } from '../data/demo'
 const props = defineProps({
   application: Object,
   history: Array,
+  documents: Array,
   busy: Boolean,
 })
-defineEmits(['back', 'decision'])
+const emit = defineEmits(['back', 'decision', 'error'])
+const amount = ref(1000000)
+const term = ref(24)
+const rate = ref(22)
+const requested = ref([])
+const documentRequired = ref(true)
+function decide() {
+  const values = { verdict: verdict.value, reason: reason.value }
+  if (verdict.value === 'counter')
+    Object.assign(values, {
+      amount: Number(amount.value),
+      term_months: Number(term.value),
+      annual_rate_percent: Number(rate.value),
+    })
+  if (verdict.value === 'need_info')
+    Object.assign(values, {
+      requested_fields: requested.value,
+      document_required: documentRequired.value,
+    })
+  emit('decision', values)
+}
 const reason = ref('')
 const verdict = ref('approve')
 watch(
   () => props.application?.id,
   () => {
     reason.value = ''
+    verdict.value = 'approve'
+    requested.value = []
+    documentRequired.value = true
+    amount.value = Math.max(
+      50000,
+      Math.min(
+        props.application?.amount || 1000000,
+        props.application?.scoring?.max_affordable_amount || 1000000,
+      ),
+    )
+    term.value = props.application?.months || 24
   },
 )
 const date = (value) => new Date(value).toLocaleString('ru-RU')
@@ -169,15 +202,69 @@ const date = (value) => new Date(value).toLocaleString('ru-RU')
         </section>
       </div>
       <div class="stack">
-        <form
-          class="card"
-          @submit.prevent="$emit('decision', { verdict, reason })"
-        >
+        <form class="card" @submit.prevent="decide">
           <h3>Решение по заявке</h3>
           <p class="muted small">
             Ручное решение доступно только для заявок на рассмотрении
             сотрудника. Оно сохранится в БД и истории клиента.
           </p>
+          <label class="label" for="bank-verdict">Вариант решения</label
+          ><select
+            id="bank-verdict"
+            v-model="verdict"
+            class="field"
+            :disabled="application.status !== 'REVIEW'"
+          >
+            <option value="approve">Одобрить</option>
+            <option value="counter">Встречное предложение</option>
+            <option value="need_info">Запросить сведения</option>
+            <option value="reject">Отказать</option>
+          </select>
+          <div v-if="verdict === 'counter'">
+            <label class="label"
+              >Предлагаемая сумма<input
+                v-model="amount"
+                class="field"
+                type="number"
+                min="50000"
+                required /></label
+            ><label class="label"
+              >Срок, месяцев<input
+                v-model="term"
+                class="field"
+                type="number"
+                min="1"
+                max="60"
+                required /></label
+            ><label class="label"
+              >Ставка, % годовых<input
+                v-model="rate"
+                class="field"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                required
+            /></label>
+          </div>
+          <div v-if="verdict === 'need_info'" class="stack mt">
+            <label class="consent-label"
+              ><input
+                v-model="requested"
+                type="checkbox"
+                value="monthly_revenue"
+              />Уточнить выручку</label
+            ><label class="consent-label"
+              ><input
+                v-model="requested"
+                type="checkbox"
+                value="current_monthly_payments"
+              />Уточнить платежи</label
+            ><label class="consent-label"
+              ><input v-model="documentRequired" type="checkbox" />Запросить
+              подтверждающий документ</label
+            >
+          </div>
           <label class="label" for="bank-reason">Обоснование решения</label
           ><textarea
             id="bank-reason"
@@ -189,28 +276,23 @@ const date = (value) => new Date(value).toLocaleString('ru-RU')
             :disabled="application.status !== 'REVIEW'"
             placeholder="Объясните причину решения клиенту"
           ></textarea>
-          <div class="stack mt">
-            <UiButton
-              type="submit"
-              :disabled="busy || application.status !== 'REVIEW'"
-              @click="verdict = 'approve'"
-              >Одобрить</UiButton
-            ><UiButton
-              type="submit"
-              alt
-              :disabled="busy || application.status !== 'REVIEW'"
-              @click="verdict = 'reject'"
-              >Отказать</UiButton
-            >
-          </div>
+          <UiButton
+            class="mt"
+            type="submit"
+            :disabled="busy || application.status !== 'REVIEW'"
+            >Сохранить решение</UiButton
+          >
           <p v-if="application.status !== 'REVIEW'" class="note">
             {{ application.client_scoring?.explanation }}
           </p>
-          <p class="muted small mt">
-            Встречное предложение и запрос документов будут подключены на
-            следующем этапе.
-          </p>
         </form>
+        <ApplicationJourney
+          :application="application"
+          :documents="documents"
+          :busy="busy"
+          bank
+          @error="$emit('error', $event)"
+        />
         <section class="card">
           <h3>История рассмотрения</h3>
           <ol class="event-list">

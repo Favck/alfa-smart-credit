@@ -12,7 +12,9 @@ services:
       - backend_data:/app/data
 
   ml:
-    build: ./ml
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.ml
     environment:
       OMP_NUM_THREADS: "1"
       OPENBLAS_NUM_THREADS: "1"

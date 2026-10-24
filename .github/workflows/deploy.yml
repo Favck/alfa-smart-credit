@@ -43,7 +43,7 @@ jobs:
           ML_INTEGRATION: "1"
           ML_BASE_URL: http://127.0.0.1:8001
         run: |
-          docker build -t "alfa-potok-ml:$GITHUB_SHA" ml
+          docker build -f deploy/Dockerfile.ml -t "alfa-potok-ml:$GITHUB_SHA" .
           docker run -d --name alfa-ml-ci --memory=384m --cpus=1 \
             -e OMP_NUM_THREADS=1 -e OPENBLAS_NUM_THREADS=1 \
             -p 127.0.0.1:8001:8001 "alfa-potok-ml:$GITHUB_SHA"

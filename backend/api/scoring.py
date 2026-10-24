@@ -158,6 +158,48 @@ def verdict(result, amount):
 
 
 def client_result(application):
+    if application.status == "REVIEW":
+        return {
+            "risk_label": application.status_label,
+            "explanation": (
+                "Оценка временно недоступна. Заявка сохранена для сотрудника."
+                if application.scoring_unavailable
+                else (
+                    "Сведения сохранены. Сотрудник банка "
+                    "рассматривает заявку."
+                )
+            ),
+            "reasons": [],
+        }
+    if application.status in {
+        "SIGNING",
+        "DISBURSED",
+        "NEED_INFO",
+        "COUNTER_OFFER",
+    }:
+        messages = {
+            "SIGNING": (
+                "Условия приняты. Ознакомьтесь с демо-договором "
+                "и подтвердите подписание."
+            ),
+            "DISBURSED": (
+                "Демо-договор подписан, выдача смоделирована. "
+                "Реальные деньги не переводились."
+            ),
+            "NEED_INFO": (
+                "Банк запросил дополнительные сведения. "
+                "Ответьте в карточке заявки."
+            ),
+            "COUNTER_OFFER": (
+                "Банк предложил другие условия. "
+                "Ознакомьтесь с ними перед принятием."
+            ),
+        }
+        return {
+            "risk_label": application.status_label,
+            "explanation": messages[application.status],
+            "reasons": [],
+        }
     if application.status == "CANCELLED":
         return {
             "risk_label": "Отменена",
