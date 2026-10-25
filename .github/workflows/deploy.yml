@@ -18,6 +18,24 @@ jobs:
   verify-and-deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: alfa_ci
+          POSTGRES_USER: alfa
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U alfa -d alfa_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_ENGINE: postgresql
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_DB: alfa_ci
+      POSTGRES_USER: alfa
+      POSTGRES_PASSWORD: ci-only-password
+      LLM_BASE_URL: ""
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -61,8 +79,14 @@ jobs:
           npm run build
       - name: Build production images
         run: |
-          docker build -f backend/Dockerfile.prod -t "alfa-potok-backend:$GITHUB_SHA" backend
-          docker build -f frontend/Dockerfile.prod -t "alfa-potok-frontend:$GITHUB_SHA" frontend
+          docker build -f backend/Dockerfile -t "alfa-potok-backend:$GITHUB_SHA" .
+          docker pull postgres:17-alpine
+      - name: Verify three-service stack
+        run: |
+          python tools/prepare_ci_compose.py "$GITHUB_SHA" /tmp/alfa-ci.yaml
+          trap 'docker compose -p alfa-ci -f /tmp/alfa-ci.yaml logs --tail 40; docker compose -p alfa-ci -f /tmp/alfa-ci.yaml down -v' EXIT
+          docker compose -p alfa-ci -f /tmp/alfa-ci.yaml up -d --wait --wait-timeout 120
+          python tools/smoke_stack.py http://127.0.0.1:18080
       - name: Deploy production
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         env:
@@ -75,7 +99,7 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/alfa_deploy
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
           trap 'rm -f ~/.ssh/alfa_deploy images.tar.gz' EXIT
-          docker save "alfa-potok-backend:$GITHUB_SHA" "alfa-potok-frontend:$GITHUB_SHA" "alfa-potok-ml:$GITHUB_SHA" | gzip -1 > images.tar.gz
+          docker save "alfa-potok-backend:$GITHUB_SHA" "alfa-potok-ml:$GITHUB_SHA" postgres:17-alpine | gzip -1 > images.tar.gz
           ssh -T -i ~/.ssh/alfa_deploy -p 22222 \
             -o BatchMode=yes -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \

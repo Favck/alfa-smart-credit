@@ -30,3 +30,5 @@ pydantic_core==2.50.1
 annotated-types==0.8.0
 typing-inspection==0.4.4
 python-dotenv==1.2.4
+psycopg==3.3.6
+psycopg-binary==3.3.6

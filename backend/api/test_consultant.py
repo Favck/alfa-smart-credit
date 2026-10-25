@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 from django.core.cache import cache
 from django.core.management import call_command
-from django.test import SimpleTestCase, override_settings
+from django.test import SimpleTestCase
 from pydantic import ValidationError as ModelValidationError
 from rest_framework.test import APITestCase
 
@@ -48,6 +48,7 @@ def provider_response(value):
 
 class ConsultantServiceTests(SimpleTestCase):
     def consult(self, value=None, *, response=None, handler=None, **kwargs):
+        kwargs.setdefault("config", LLMConfig(base_url="http://llm.test/v1"))
         if handler is None:
 
             def handler(request):
@@ -215,7 +216,10 @@ class ConsultantServiceTests(SimpleTestCase):
 
         started = time.monotonic()
         result = self.consult(
-            handler=delayed, config=LLMConfig(timeout_seconds=5.0)
+            handler=delayed,
+            config=LLMConfig(
+                base_url="http://llm.test/v1", timeout_seconds=5.0
+            ),
         )
         elapsed = time.monotonic() - started
         self.assertTrue(result.is_fallback)
@@ -231,7 +235,9 @@ class ConsultantServiceTests(SimpleTestCase):
         started = time.monotonic()
         response = self.consult(
             response=httpx.Response(200, stream=SlowStream()),
-            config=LLMConfig(timeout_seconds=0.06),
+            config=LLMConfig(
+                base_url="http://llm.test/v1", timeout_seconds=0.06
+            ),
         )
         self.assertTrue(response.is_fallback)
         self.assertLess(time.monotonic() - started, 0.2)
@@ -254,6 +260,7 @@ class ConsultantServiceTests(SimpleTestCase):
                     consult_product(
                         "Закупаем товар",
                         transport=httpx.MockTransport(delayed),
+                        config=LLMConfig(base_url="http://llm.test/v1"),
                     )
                     for _ in range(4)
                 ]
@@ -265,9 +272,7 @@ class ConsultantServiceTests(SimpleTestCase):
     def test_env_defaults_and_safe_timeout(self):
         with patch.dict(os.environ, {}, clear=True):
             cfg = LLMConfig.from_env()
-            self.assertEqual(
-                cfg.base_url, "http://host.docker.internal:11434/v1"
-            )
+            self.assertEqual(cfg.base_url, "")
             self.assertEqual(cfg.model_name, "qwen2.5:7b")
             self.assertEqual(cfg.timeout_seconds, 5.0)
         for value in ["nan", "inf", "invalid", "-1", "9"]:
@@ -276,7 +281,6 @@ class ConsultantServiceTests(SimpleTestCase):
         self.assertNotIn("secret", repr(LLMConfig(api_key="secret")))
 
 
-@override_settings(LLM_ENABLED=True)
 class ConsultantApiTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
@@ -321,20 +325,35 @@ class ConsultantApiTests(APITestCase):
         self.assertTrue(response.data["is_fallback"])
         mocked.assert_awaited_once_with("Закупаем товар")
 
-    @override_settings(LLM_ENABLED=False)
-    def test_disabled_llm_returns_fallback_without_any_model_call(self):
+    def test_empty_url_uses_keyword_rules_without_network(self):
         self.login()
-        mocked = AsyncMock()
-        with patch("api.consultation_views.consult_product", mocked):
-            response = self.client.post(
-                "/api/v1/consultations/",
-                {"user_query": "Открываем новую точку"},
-                format="json",
-            )
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.data["is_fallback"])
-        self.assertEqual(response.data["product"], "working_capital")
-        mocked.assert_not_awaited()
+        with patch.dict(os.environ, {"LLM_BASE_URL": ""}):
+            with patch("api.consultant.httpx.AsyncClient") as client:
+                for query, product in [
+                    (
+                        "Нечем платить зарплату завтра, "
+                        "клиент задерживает расчет",
+                        "overdraft",
+                    ),
+                    (
+                        "Закупаем партию обуви на осенне-зимний сезон",
+                        "working_capital",
+                    ),
+                    (
+                        "Нужны новые станки и оборудование",
+                        "equipment_purchase",
+                    ),
+                    ("Открываем новую точку", "investment"),
+                ]:
+                    response = self.client.post(
+                        "/api/v1/consultations/",
+                        {"user_query": query},
+                        format="json",
+                    )
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(response.data["product"], product)
+                    self.assertTrue(response.data["is_fallback"])
+                client.assert_not_called()
 
     def test_investment_recommendation_is_a_valid_draft(self):
         self.login()

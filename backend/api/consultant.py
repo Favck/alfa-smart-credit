@@ -101,7 +101,7 @@ class ProductConsultationResponse(BaseModel):
 class LLMConfig:
     """Connection parameters; the key is excluded from repr and logs."""
 
-    base_url: str = "http://host.docker.internal:11434/v1"
+    base_url: str = ""
     api_key: str = field(default="ollama", repr=False)
     model_name: str = "qwen2.5:7b"
     timeout_seconds: float = 5.0
@@ -180,17 +180,50 @@ null. is_fallback всегда false: резервным ответом упра
 SYSTEM_PROMPT = " ".join(SYSTEM_PROMPT.split())
 
 
-def fallback_response() -> ProductConsultationResponse:
-    """Return the same safe, schema-validated result for any upstream error."""
+def fallback_response(user_query: str = "") -> ProductConsultationResponse:
+    """Classify the business task locally when inference is unavailable."""
+    query = user_query.lower()
+    if re.search(
+        r"филиал|строит|капитальн|ремонт|нов\w* точк|откр\w* (?:пекар|магазин|кафе|офис)",
+        query,
+    ):
+        product, term, title = (
+            ProductType.INVESTMENT,
+            60,
+            "Инвестиционный кредит",
+        )
+        purpose = "открытия новых точек, ремонта и развития бизнеса"
+    elif re.search(
+        r"\bстан\w*|оборудован|транспорт|сервер|производственн\w* лини", query
+    ):
+        product, term, title = (
+            ProductType.EQUIPMENT_PURCHASE,
+            36,
+            "Кредит на оборудование",
+        )
+        purpose = "покупки техники и производственного оборудования"
+    elif re.search(
+        r"кассов\w* разрыв|зарплат|налог|задерж\w*|нечем плат|жд[её]м оплат",
+        query,
+    ):
+        product, term, title = ProductType.OVERDRAFT, 2, "Овердрафт"
+        purpose = "временных платежей в ожидании поступления выручки"
+    else:
+        product, term, title = (
+            ProductType.WORKING_CAPITAL,
+            12,
+            "Оборотный кредит",
+        )
+        purpose = "закупки товаров, сырья и текущих задач бизнеса"
     return ProductConsultationResponse(
-        product=ProductType.WORKING_CAPITAL,
+        product=product,
         confidence=0.0,
-        title="Оборотный кредит",
+        title=title,
         explanation=(
-            "Начните с оборотного кредита для текущих задач бизнеса. "
+            f"Этот продукт подходит для {purpose}. "
             "Параметры можно уточнить при оформлении заявки."
         ),
-        suggested_term_months=12,
+        suggested_term_months=term,
         alternative_product=None,
         is_fallback=True,
     )
@@ -224,6 +257,8 @@ async def consult_product(
     """
     query = ConsultationInput(user_query=user_query).user_query
     configuration = config or LLMConfig.from_env()
+    if not configuration.base_url:
+        return fallback_response(query)
     try:
         parsed = urlsplit(configuration.base_url)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
@@ -285,4 +320,4 @@ async def consult_product(
     ) as exc:
         # Do not log the query, credentials, raw completion or provider URL.
         logger.warning("Product consultation fallback: %s", type(exc).__name__)
-        return fallback_response()
+        return fallback_response(query)

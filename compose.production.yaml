@@ -6,26 +6,35 @@ services:
     init: true
     environment:
       ML_BASE_URL: http://ml:8001
-      ML_TIMEOUT_SECONDS: "2.5"
-      DJANGO_DEBUG: "false"
+      ML_TIMEOUT_SECONDS: '2.5'
+      DJANGO_DEBUG: 'false'
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY}
       DJANGO_ALLOWED_HOSTS: alpha.srv-node.com,localhost,127.0.0.1
       DJANGO_CSRF_TRUSTED_ORIGINS: https://alpha.srv-node.com
-      DEMO_MODE: "true"
-      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434/v1}
-      LLM_API_KEY: ${LLM_API_KEY:-ollama}
+      DEMO_MODE: 'true'
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-dummy}
       LLM_MODEL_NAME: ${LLM_MODEL_NAME:-qwen2.5:7b}
       LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-5.0}
-      LLM_ENABLED: ${LLM_ENABLED:-false}
-    extra_hosts:
-      - host.docker.internal:host-gateway
+      DATABASE_ENGINE: postgresql
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB:-alfa}
+      POSTGRES_USER: ${POSTGRES_USER:-alfa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     volumes:
-      - /opt/alfa-potok/data:/app/data
+    - /opt/alfa-potok/data:/app/data
     depends_on:
       ml:
         condition: service_started
+      db:
+        condition: service_healthy
     healthcheck:
-      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/', timeout=5)"]
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/',
+        timeout=5)
       interval: 10s
       timeout: 6s
       retries: 6
@@ -35,32 +44,33 @@ services:
     pids_limit: 128
     read_only: true
     tmpfs:
-      - /tmp:size=64m,mode=1777
+    - /tmp:size=64m,mode=1777
     security_opt:
-      - no-new-privileges:true
+    - no-new-privileges:true
     logging:
       driver: json-file
-      options: {max-size: 10m, max-file: "3"}
-
+      options:
+        max-size: 10m
+        max-file: '3'
+    ports:
+    - 127.0.0.1:8092:8000
   ml:
     image: alfa-potok-ml:${RELEASE_SHA:?Set RELEASE_SHA}
     restart: unless-stopped
     init: true
     environment:
-      OMP_NUM_THREADS: "1"
-      OPENBLAS_NUM_THREADS: "1"
-      MKL_NUM_THREADS: "1"
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
     healthcheck:
       test:
-        - CMD
-        - python
-        - -c
-        - >-
-          import json,uuid,urllib.request;
-          p=dict(request_id=str(uuid.uuid4()),application_id='healthcheck',product='working_capital',amount=500000,term_months=12,company_age_months=48,company_status='active',okved_group='10',monthly_revenue=1500000,current_monthly_payments=40000);
-          r=urllib.request.Request('http://127.0.0.1:8001/api/v1/scoring/evaluate',data=json.dumps(p).encode(),headers={'Content-Type':'application/json'});
-          d=json.load(urllib.request.urlopen(r,timeout=6));
-          assert d['score'] is not None and len(d['reasons'])==5
+      - CMD
+      - python
+      - -c
+      - import json,uuid,urllib.request; p=dict(request_id=str(uuid.uuid4()),application_id='healthcheck',product='working_capital',amount=500000,term_months=12,company_age_months=48,company_status='active',okved_group='10',monthly_revenue=1500000,current_monthly_payments=40000);
+        r=urllib.request.Request('http://127.0.0.1:8001/api/v1/scoring/evaluate',data=json.dumps(p).encode(),headers={'Content-Type':'application/json'});
+        d=json.load(urllib.request.urlopen(r,timeout=6)); assert d['score'] is not
+        None and len(d['reasons'])==5
       interval: 30s
       timeout: 8s
       retries: 3
@@ -70,31 +80,43 @@ services:
     pids_limit: 64
     read_only: true
     tmpfs:
-      - /tmp:size=32m,mode=1777
+    - /tmp:size=32m,mode=1777
     security_opt:
-      - no-new-privileges:true
+    - no-new-privileges:true
     logging:
       driver: json-file
-      options: {max-size: 10m, max-file: "3"}
-
-  frontend:
-    image: alfa-potok-frontend:${RELEASE_SHA:?Set RELEASE_SHA}
+      options:
+        max-size: 10m
+        max-file: '3'
+  db:
+    image: postgres:17-alpine
     restart: unless-stopped
-    ports:
-      - 127.0.0.1:8092:8080
-    depends_on:
-      backend:
-        condition: service_healthy
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-alfa}
+      POSTGRES_USER: ${POSTGRES_USER:-alfa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    command:
+    - postgres
+    - -c
+    - shared_buffers=32MB
+    - -c
+    - work_mem=2MB
+    - -c
+    - max_connections=40
     healthcheck:
-      test: [CMD, wget, -q, --spider, http://127.0.0.1:8080/]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-    mem_limit: 128m
-    cpus: 0.25
-    pids_limit: 64
-    security_opt:
-      - no-new-privileges:true
+      test:
+      - CMD-SHELL
+      - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 192m
+    cpus: 0.5
+    pids_limit: 128
+    volumes:
+    - /opt/alfa-potok/postgres:/var/lib/postgresql/data
     logging:
       driver: json-file
-      options: {max-size: 10m, max-file: "3"}
+      options:
+        max-size: 10m
+        max-file: '3'

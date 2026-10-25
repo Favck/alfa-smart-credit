@@ -13,7 +13,6 @@ ALLOWED_HOSTS = os.environ.get(
     "DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,[::1]"
 ).split(",")
 DEMO_MODE = os.environ.get("DEMO_MODE", "true").lower() == "true"
-LLM_ENABLED = os.environ.get("LLM_ENABLED", "false").lower() == "true"
 ML_BASE_URL = os.environ.get("ML_BASE_URL", "http://127.0.0.1:8001")
 ML_TIMEOUT_SECONDS = min(
     15, max(0.1, float(os.environ.get("ML_TIMEOUT_SECONDS", "2.5")))
@@ -67,6 +66,20 @@ DATABASES = {
         "NAME": BASE_DIR / "data" / "db.sqlite3",
     }
 }
+if os.getenv("DATABASE_ENGINE", "sqlite") == "postgresql":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("POSTGRES_DB", "alfa"),
+            "USER": os.getenv("POSTGRES_USER", "alfa"),
+            "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
+            "HOST": os.getenv("POSTGRES_HOST", "db"),
+            "PORT": os.getenv("POSTGRES_PORT", "5432"),
+            "OPTIONS": {"connect_timeout": 5},
+        }
+    }
+FRONTEND_ROOT = BASE_DIR / "frontend_dist"
+WHITENOISE_ROOT = FRONTEND_ROOT
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": (

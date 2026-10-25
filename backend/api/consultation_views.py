@@ -1,14 +1,13 @@
 """Authenticated Django adapter for the asynchronous consultant module."""
 
 from asgiref.sync import async_to_sync
-from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 
 from . import serializers as S
-from .consultant import consult_product, fallback_response
+from .consultant import consult_product
 from .pipeline import ClientAPI
 
 
@@ -29,9 +28,9 @@ class ProductConsultationView(ClientAPI):
         responses={200: S.ProductConsultation, 400: S.Error},
         description=(
             "Асинхронный Chat Completions клиент. При сбое LLM возвращает "
-            "валидный working_capital с is_fallback=true. "
-            "LLM_ENABLED=false отключает сетевые вызовы и возвращает "
-            "тот же базовый вариант. "
+            "подбор по ключевым словам с is_fallback=true. "
+            "Пустой LLM_BASE_URL включает тот же резервный подбор "
+            "без сетевых обращений. "
             "Рекомендация переносится в заявку; кредитное решение принимает "
             "основной конвейер. Не более 10 запросов в минуту на профиль."
         ),
@@ -41,9 +40,7 @@ class ProductConsultationView(ClientAPI):
         values.is_valid(raise_exception=True)
         if set(request.data) - {"user_query"}:
             raise ValidationError("Передайте только user_query.")
-        result = (
-            async_to_sync(consult_product)(values.validated_data["user_query"])
-            if settings.LLM_ENABLED
-            else fallback_response()
+        result = async_to_sync(consult_product)(
+            values.validated_data["user_query"]
         )
         return Response(result.model_dump(mode="json"))

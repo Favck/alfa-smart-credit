@@ -110,9 +110,7 @@ async function consult() {
     <article v-if="result" class="consultant-result" aria-live="polite">
       <div class="consultant-result-header">
         <div>
-          <span class="eyebrow">{{
-            result.is_fallback ? 'БАЗОВЫЙ ВАРИАНТ' : 'ПОДХОДЯЩИЙ ПРОДУКТ'
-          }}</span>
+          <span class="eyebrow">ПОДХОДЯЩИЙ ПРОДУКТ</span>
           <h3>{{ result.title }}</h3>
         </div>
         <span class="pill">{{ result.suggested_term_months }} мес.</span>
