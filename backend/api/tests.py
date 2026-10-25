@@ -99,7 +99,7 @@ class ApiSmokeTests(APITestCase):
 
     def test_catalog_and_missing_items(self):
         self.login_as("green")
-        self.assertEqual(len(self.client.get("/api/v1/products/").data), 3)
+        self.assertEqual(len(self.client.get("/api/v1/products/").data), 4)
         self.assertEqual(
             self.client.get("/api/v1/products/overdraft/").status_code, 200
         )

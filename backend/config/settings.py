@@ -1,7 +1,10 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env", override=False)
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY", "development-only-alfa-potok-change-before-deployment"
 )
@@ -10,6 +13,7 @@ ALLOWED_HOSTS = os.environ.get(
     "DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,[::1]"
 ).split(",")
 DEMO_MODE = os.environ.get("DEMO_MODE", "true").lower() == "true"
+LLM_ENABLED = os.environ.get("LLM_ENABLED", "false").lower() == "true"
 ML_BASE_URL = os.environ.get("ML_BASE_URL", "http://127.0.0.1:8001")
 ML_TIMEOUT_SECONDS = min(
     15, max(0.1, float(os.environ.get("ML_TIMEOUT_SECONDS", "2.5")))
@@ -121,7 +125,7 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Альфа.Поток — Backend API",
     "VERSION": "0.1.0",
     "OAS_VERSION": "3.0.3",
-    "DESCRIPTION": """Черновой контракт Django ↔ Vue для хакатона.""",
+    "DESCRIPTION": "API кредитного кабинета и банковского конвейера.",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "SWAGGER_UI_DIST": "SIDECAR",
@@ -149,6 +153,10 @@ SPECTACULAR_SETTINGS = {
             "description": "Профиль компании текущего клиента.",
         },
         {"name": "Продукты", "description": "Каталог кредитных продуктов."},
+        {
+            "name": "AI-консультант",
+            "description": "Подбор продукта по задаче предпринимателя.",
+        },
         {
             "name": "Новости",
             "description": "Локальные статьи с подбором по отрасли компании.",

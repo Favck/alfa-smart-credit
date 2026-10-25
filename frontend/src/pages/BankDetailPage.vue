@@ -234,7 +234,7 @@ const date = (value) => new Date(value).toLocaleString('ru-RU')
                 class="field"
                 type="number"
                 min="1"
-                max="60"
+                max="120"
                 required /></label
             ><label class="label"
               >Ставка, % годовых<input

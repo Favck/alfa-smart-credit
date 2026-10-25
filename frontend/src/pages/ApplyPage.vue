@@ -16,9 +16,29 @@ const product = computed(() =>
   products.find((item) => item.id === props.modelValue.productId),
 )
 const terms = computed(() =>
-  [1, 3, 6, 12, 18, 24, 36, 48, 60].filter(
-    (term) => term >= product.value.minTerm && term <= product.value.maxTerm,
-  ),
+  [
+    ...new Set([
+      1,
+      2,
+      3,
+      6,
+      12,
+      18,
+      24,
+      36,
+      48,
+      60,
+      72,
+      84,
+      96,
+      120,
+      props.modelValue.months,
+    ]),
+  ]
+    .sort((a, b) => a - b)
+    .filter(
+      (term) => term >= product.value.minTerm && term <= product.value.maxTerm,
+    ),
 )
 const payment = computed(() => {
   if (product.value.id === 'overdraft') return null

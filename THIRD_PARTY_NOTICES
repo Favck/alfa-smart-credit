@@ -23,6 +23,11 @@ Frontend components (exact versions in frontend/package-lock.json):
 - Vite — MIT.
 - @vitejs/plugin-vue — MIT.
 - Prettier — MIT (development formatting).
+- AI consultant: HTTPX and HTTPCore (BSD-3-Clause), Pydantic (MIT),
+  certifi (MPL-2.0), python-dotenv (BSD-3-Clause). Exact versions are pinned
+  in backend/requirements.txt. No LLM weights are bundled; the configured
+  provider supplies its own model and applicable license. LLM calls are
+  disabled by default and no Ollama instance is installed by this project.
 
 Synthetic/local data:
 - The five UI images in frontend/public/images were generated using built-in ImageGen

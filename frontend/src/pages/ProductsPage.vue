@@ -2,14 +2,16 @@
 import PageHeading from '../components/PageHeading.vue'
 import UiButton from '../components/UiButton.vue'
 import AppIcon from '../components/AppIcon.vue'
+import ProductConsultant from '../components/ProductConsultant.vue'
 import { money, products } from '../data/demo'
-defineEmits(['select'])
+defineEmits(['select', 'consultation'])
 </script>
 <template>
   <PageHeading
     title="Финансирование для ваших планов"
     description="Подберите решение под задачу бизнеса. Всё остальное — поможем пройти шаг за шагом."
   />
+  <ProductConsultant @select="$emit('consultation', $event)" />
   <section class="card product-guide">
     <div>
       <span class="eyebrow">НАЧНЁМ С ВАШЕЙ ЗАДАЧИ</span>
@@ -26,20 +28,25 @@ defineEmits(['select'])
       /></UiButton>
     </div>
   </section>
-  <div class="grid3 product-grid">
+  <div class="grid2 product-grid">
     <article
       v-for="(product, index) in products"
       :key="product.id"
       class="card product-card"
     >
       <span class="news-tag rose">{{
-        ['На каждый день', 'В развитие бизнеса', 'Когда нужно вовремя'][index]
+        [
+          'На каждый день',
+          'В развитие бизнеса',
+          'Когда нужно вовремя',
+          'Для новых возможностей',
+        ][index]
       }}</span>
       <h2>{{ product.name }}</h2>
       <p class="muted">{{ product.description }}</p>
       <img
         class="product-art"
-        :src="`/images/${['product-growth', 'product-equipment', 'product-overdraft'][index]}.png`"
+        :src="`/images/${['product-growth', 'product-equipment', 'product-overdraft', 'hero-card'][index]}.png`"
         alt=""
         loading="lazy"
         width="1024"

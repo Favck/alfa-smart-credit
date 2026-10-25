@@ -181,6 +181,43 @@
       }
     },
     {
+      "name": "03b AI-консультант: подбор продукта",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/consultations/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_query\": \"Нечем платить зарплату завтра, клиент задерживает расчет\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.response.to.have.status(200);const r=pm.response.json();pm.expect(['overdraft','working_capital','equipment_purchase','investment']).to.include(r.product);pm.expect(r.is_fallback).to.be.a('boolean');"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "05 Полный материал",
       "request": {
         "method": "GET",

@@ -1,6 +1,11 @@
 from rest_framework import serializers as s
 
-PRODUCT_CODES = ["working_capital", "equipment_purchase", "overdraft"]
+PRODUCT_CODES = [
+    "working_capital",
+    "equipment_purchase",
+    "overdraft",
+    "investment",
+]
 DEMO_PROFILE_IDS = ["green", "yellow", "red", "underwriter"]
 APPLICATION_STATUSES = [
     "DRAFT",
@@ -118,7 +123,7 @@ class ApplicationWrite(s.Serializer):
         min_value=50000,
         help_text="Целые рубли. Дополнительно проверяется диапазон продукта.",
     )
-    term_months = s.IntegerField(min_value=1, max_value=60)
+    term_months = s.IntegerField(min_value=1, max_value=120)
     purpose = s.CharField(max_length=1000, required=False, allow_blank=True)
     monthly_revenue = s.IntegerField(min_value=0)
     current_monthly_payments = s.IntegerField(min_value=0)
@@ -127,7 +132,7 @@ class ApplicationWrite(s.Serializer):
 class ApplicationPatch(s.Serializer):
     product_id = s.ChoiceField(choices=PRODUCT_CODES, required=False)
     amount = s.IntegerField(min_value=50000, required=False)
-    term_months = s.IntegerField(min_value=1, max_value=60, required=False)
+    term_months = s.IntegerField(min_value=1, max_value=120, required=False)
     purpose = s.CharField(max_length=1000, required=False, allow_blank=True)
     monthly_revenue = s.IntegerField(min_value=0, required=False)
     current_monthly_payments = s.IntegerField(min_value=0, required=False)
@@ -321,7 +326,7 @@ class DecisionWrite(s.Serializer):
     )
     term_months = s.IntegerField(
         min_value=1,
-        max_value=60,
+        max_value=120,
         required=False,
         help_text="Обязательно для counter.",
     )
@@ -451,3 +456,24 @@ class WorkflowDecision(DecisionWrite):
 class LiveDocument(Document):
     sha256 = s.CharField()
     signed_at = s.DateTimeField(allow_null=True)
+
+
+class ConsultationWrite(s.Serializer):
+    user_query = s.CharField(
+        min_length=5, max_length=1000, trim_whitespace=True
+    )
+
+    def validate_user_query(self, value):
+        if not isinstance(self.initial_data.get("user_query"), str):
+            raise s.ValidationError("Опишите задачу текстом.")
+        return value
+
+
+class ProductConsultation(s.Serializer):
+    product = s.ChoiceField(choices=PRODUCT_CODES)
+    confidence = s.FloatField(min_value=0, max_value=1)
+    title = s.CharField(max_length=120)
+    explanation = s.CharField(max_length=1000)
+    suggested_term_months = s.IntegerField(min_value=1, max_value=120)
+    alternative_product = s.ChoiceField(choices=PRODUCT_CODES, allow_null=True)
+    is_fallback = s.BooleanField()

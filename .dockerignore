@@ -1,4 +1,6 @@
 .git
+.env
+**/.env
 .codex-finalizer
 **/node_modules
 **/__pycache__

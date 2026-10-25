@@ -3,6 +3,7 @@ from django.urls import path
 from . import completion as C
 from . import pipeline as P
 from . import views as V
+from .consultation_views import ProductConsultationView
 
 urlpatterns = [
     path("health/", V.HealthView.as_view()),
@@ -12,6 +13,7 @@ urlpatterns = [
     path("auth/logout/", V.LogoutView.as_view()),
     path("company/", V.CompanyView.as_view()),
     path("products/", V.ProductsView.as_view()),
+    path("consultations/", ProductConsultationView.as_view()),
     path("products/<str:product_id>/", V.ProductView.as_view()),
     path("news/", V.NewsView.as_view()),
     path("news/<int:news_id>/", V.NewsDetailView.as_view()),

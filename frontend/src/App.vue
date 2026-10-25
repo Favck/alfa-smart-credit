@@ -201,6 +201,15 @@ function selectProduct(id) {
   submissionKey = ''
   view.value = 'apply'
 }
+function applyConsultation({ result, query }) {
+  selectProduct(result.product)
+  const product = products.find((item) => item.id === result.product)
+  draft.value.months = Math.max(
+    product.minTerm,
+    Math.min(product.maxTerm, result.suggested_term_months),
+  )
+  draft.value.purpose = query
+}
 function submitApplication(send = true) {
   run(async () => {
     submissionKey ||= crypto.randomUUID()
@@ -470,6 +479,7 @@ onMounted(() => {
               <ProductsPage
                 v-else-if="view === 'products'"
                 @select="selectProduct"
+                @consultation="applyConsultation"
               />
               <ApplyPage
                 v-else-if="view === 'apply'"

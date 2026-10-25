@@ -112,14 +112,25 @@ PRODUCTS = [
         "id": "overdraft",
         "name": "Овердрафт",
         "description": (
-            "Для временных кассовых разрывов. Механика расчёта "
-            "условий требует отдельного согласования."
+            "Для временных кассовых разрывов и платежей "
+            "в ожидании поступления выручки."
         ),
         "min_amount": 50000,
         "max_amount": 3000000,
         "min_term_months": 1,
         "max_term_months": 12,
         "base_rate_percent": "24.00",
+        "is_demo_rate": True,
+    },
+    {
+        "id": "investment",
+        "name": "Инвестиционный кредит",
+        "description": "Для новых точек, ремонта и строительства.",
+        "min_amount": 1000000,
+        "max_amount": 10000000,
+        "min_term_months": 24,
+        "max_term_months": 120,
+        "base_rate_percent": "21.00",
         "is_demo_rate": True,
     },
 ]

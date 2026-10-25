@@ -5,10 +5,11 @@ export const setToken = (value) => {
   else sessionStorage.removeItem('alfa-token')
 }
 export const hasToken = () => Boolean(token)
-export async function api(path, { method = 'GET', data, key } = {}) {
+export async function api(path, { method = 'GET', data, key, signal } = {}) {
   const multipart = data instanceof FormData
   const response = await fetch('/api/v1/' + path, {
     method,
+    signal,
     headers: {
       ...(token ? { Authorization: `Token ${token}` } : {}),
       ...(data && !multipart ? { 'Content-Type': 'application/json' } : {}),

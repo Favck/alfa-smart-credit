@@ -38,6 +38,18 @@ export const products = [
     icon: '⇄',
     purpose: 'Закрыть кассовый разрыв',
   },
+  {
+    id: 'investment',
+    name: 'Инвестиционный кредит',
+    description: 'Для новых точек, ремонта и строительства',
+    minAmount: 1000000,
+    maxAmount: 10000000,
+    minTerm: 24,
+    maxTerm: 120,
+    rate: 21,
+    icon: '↗',
+    purpose: 'Открыть новую точку',
+  },
 ]
 
 export const profiles = [
