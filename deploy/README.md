@@ -1,75 +1,46 @@
-# Production: https://alpha.srv-node.com
+# Развёртывание Альфа.Поток
 
-Репозиторий: https://github.com/Favck/alfa-smart-credit.
-CI/CD: https://github.com/Favck/alfa-smart-credit/actions.
+Compose project `alfa-potok`: только backend, ml, db. Backend-образ содержит
+Django, Gunicorn и готовую Vue-сборку, которую отдаёт WhiteNoise. Nginx
+направляет alpha.srv-node.com на 127.0.0.1:8092. У ML и PostgreSQL внешних
+портов нет. Другие проекты не входят в команды Compose или миграции.
 
-После переноса репозитория серверные имена `alfa-potok`, каталог данных,
-домен и учётные записи сохранены. Секреты деплоя настроены в новом репозитории.
+LLM-веса и контейнеры Ollama/vLLM/TGI не устанавливаются и не скачиваются.
+При заданном LLM_BASE_URL используется внешний Chat Completions endpoint;
+без адреса и при ошибках работают правила. Окружение хранится в закрытом
+/opt/alfa-potok/.env. Лимиты памяти: backend 384 МиБ, ML 384 МиБ, db 192 МиБ.
+PostgreSQL: shared_buffers=32MB, work_mem=2MB, max_connections=40.
+Данные: /opt/alfa-potok/postgres; резервные копии: /opt/alfa-potok/backups.
 
-Push в `main` запускает `.github/workflows/deploy.yml`: pytest, Django check,
-проверка миграций/Swagger, сборка Vue, трёх production-образов и доставка
-по SSH. Pull request выполняет проверки и сборки без деплоя.
-Повторный деплой: Actions → CI and production deploy → Run workflow → main.
+## CI/CD
 
-## Изоляция
+Push main запускает проверки Django, OpenAPI и тесты на PostgreSQL с настоящим
+ML. Затем собираются образы, запускается полный трёхсервисный стенд,
+проверяются UI/API и перенос SQLite-фикстуры в PostgreSQL. По SSH передаются
+образы backend, ML и PostgreSQL. Ветки проверяются без production-деплоя.
 
-- Сервер: `2.27.205.29`, SSH `22222`.
-- Compose project: `alfa-potok`; только собственная сеть и контейнеры.
-- Рабочий каталог: `/opt/alfa-potok`; закрытый `.env` содержит Django secret.
-- SQLite: `/opt/alfa-potok/data/db.sqlite3`, сохраняется между деплоями.
-- Внешний вход: отдельный Nginx virtual host `alpha.srv-node.com` →
-  `127.0.0.1:8092`; Django доступен только внутри сети проекта.
-- Лимиты памяти: backend 384 MiB, ML 384 MiB, frontend 128 MiB. Ротация логов.
-- ML: только внутренняя сеть, без опубликованного порта, один поток OpenMP.
-  Healthcheck проверяет загрузку модели и реальный evaluate, а не только HTTP.
-- HTTPS: Let's Encrypt, webroot `/var/www/alfa-potok-acme`, certbot timer.
-- Пользователь `alfa-deploy` без Docker-группы и общего sudo-доступа.
-  Отдельный ключ разрешает только фиксированную команду деплоя с SHA.
-  SSH forwarding, PTY и произвольные команды запрещены.
-- GitHub secrets: `ALFA_DEPLOY_SSH_KEY`, `ALFA_DEPLOY_KNOWN_HOSTS`.
-  Ключи и `.env` в Git не хранятся.
+Ключ ALFA_DEPLOY_SSH_KEY разрешает только deploy SHA через alfa-deploy.
+Root-owned скрипт: /usr/local/sbin/alfa-potok-deploy; конфигурация:
+/opt/alfa-potok/compose.yaml. Перед установкой выполняется compose config
+--quiet. Текущая версия — current-release, рабочая конфигурация —
+last-good-compose.yaml. Глобальные перезапуски Docker/Nginx и prune не нужны.
 
-Вход, заявки и результаты скоринга работают через Django и ML.
-Django API и Swagger доступны на `/api/v1/` и `/api/docs/`.
-`DEMO_MODE=true` намеренно включает синтетические демонстрационные профили.
+## Перенос базы
 
-## Обновление конфигурации сервера
+При первом переходе останавливается только backend проекта и создаётся
+SQLite-копия. Экспорт сохраняет первичные ключи пользователей и естественные
+внешние ссылки. После миграций PostgreSQL импортируются пользователи,
+токены, заявки, история, офферы и документы. verify_legacy_import проверяет
+количества, ID пользователей, пароли и хеши документов до включения сайта.
+Исходная SQLite-база и копия сохраняются.
 
-`compose.production.yaml` установлен как `/opt/alfa-potok/compose.yaml`,
-`deploy/server-deploy.sh` — как `/usr/local/sbin/alfa-potok-deploy`,
-`deploy/nginx.conf` — как `/etc/nginx/sites-available/alfa-potok.conf`.
-Это root-owned конфигурация. CI обновляет только образы приложения;
-изменения этих трёх файлов нужно отдельно установить администратором,
-проверив `docker compose config --quiet` и `nginx -t` перед reload.
-Не выполнять глобальные `docker system prune`, `docker compose down`
-или перезапуск Docker/Nginx для обновления приложения.
+При следующих обновлениях создаётся pg_dump. Неуспешный запуск возвращает
+предыдущие образы, конфигурацию и данные. При неуспехе первого перехода
+возвращается исходный SQLite-стенд. Операции ограничены собственной базой
+и контейнерами проекта.
 
-## Проверки и откат
+## Сервер жюри
 
-Сервер блокирует параллельные деплои через flock, перед обновлением делает
-согласованную SQLite backup в `/opt/alfa-potok/backups/`, затем ждёт
-healthcheck трёх контейнеров и проверяет API через frontend.
-При ошибке останавливает только контейнеры этого проекта, восстанавливает
-предыдущую БД, предыдущие образы и `last-good-compose.yaml`.
-Это позволяет откатиться и на старую конфигурацию без ML.
-Неуспешный первый деплой остаётся
-остановленным. Неудачный rollback требует вмешательства администратора.
-Автооткат теряет записи, сделанные после преддеплойной резервной копии;
-для текущего демонстрационного стенда это допустимо. Для реальных данных
-потребуются окно обслуживания и отдельная стратегия миграций.
-
-Текущий SHA записан в `/opt/alfa-potok/current-release`. Старые образы и
-резервные копии автоматически не удаляются. Контролировать место на диске
-и удалять только заведомо ненужные артефакты проекта.
-
-Ручной откат администратором на сохранённый SHA (без восстановления БД):
-
-```sh
-cd /opt/alfa-potok
-sudo env RELEASE_SHA=<40-символьный-SHA> docker compose \
-  --project-name alfa-potok --file compose.yaml --env-file .env \
-  up -d --wait --wait-timeout 150
-```
-
-БД восстанавливать отдельно из нужной копии при остановленном backend.
-После успешного ручного отката обновить `current-release` на выбранный SHA.
+В .env задаются LLM_BASE_URL, LLM_API_KEY, LLM_MODEL_NAME. Далее запускается
+`docker compose up --build`. Дополнительного флага включения нет.
+При пустом адресе обращения к внешней модели не отправляются.

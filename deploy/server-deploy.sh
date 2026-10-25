@@ -38,7 +38,7 @@ PY
             -v "$backup.sqlite3:/app/data/db.sqlite3:ro" \
             -e DJANGO_DEBUG=true -e DATABASE_ENGINE=sqlite \
             "alfa-potok-backend:$previous" python manage.py dumpdata \
-            --natural-foreign --natural-primary \
+            --natural-foreign \
             --exclude contenttypes --exclude auth.permission > "$backup.json" || return
         cp "$backup.json" data/legacy.fixture.json || return
     fi

@@ -87,6 +87,10 @@ jobs:
           trap 'docker compose -p alfa-ci -f /tmp/alfa-ci.yaml logs --tail 40; docker compose -p alfa-ci -f /tmp/alfa-ci.yaml down -v' EXIT
           docker compose -p alfa-ci -f /tmp/alfa-ci.yaml up -d --wait --wait-timeout 120
           python tools/smoke_stack.py http://127.0.0.1:18080
+          python tools/make_legacy_fixture.py /tmp/legacy.json
+          docker cp /tmp/legacy.json alfa-ci-backend-1:/tmp/legacy.json
+          docker compose -p alfa-ci -f /tmp/alfa-ci.yaml exec -T --user 0 backend python manage.py loaddata /tmp/legacy.json
+          docker compose -p alfa-ci -f /tmp/alfa-ci.yaml exec -T --user 0 backend python manage.py verify_legacy_import /tmp/legacy.json
       - name: Deploy production
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         env:

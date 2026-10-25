@@ -1,4 +1,5 @@
 """Use the actual local stack with prebuilt images in an isolated CI project."""
+
 import sys
 from pathlib import Path
 import yaml
@@ -12,7 +13,16 @@ backend = config["services"]["backend"]
 backend["ports"] = ["127.0.0.1:18080:8000"]
 backend["environment"]["LLM_BASE_URL"] = ""
 backend["healthcheck"] = {
-    "test": ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/')"],
-    "interval": "3s", "timeout": "3s", "retries": 30,
+    "test": [
+        "CMD",
+        "python",
+        "-c",
+        "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/')",
+    ],
+    "interval": "3s",
+    "timeout": "3s",
+    "retries": 30,
 }
-Path(sys.argv[2]).write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf8")
+Path(sys.argv[2]).write_text(
+    yaml.safe_dump(config, sort_keys=False), encoding="utf8"
+)

@@ -184,7 +184,8 @@ def fallback_response(user_query: str = "") -> ProductConsultationResponse:
     """Classify the business task locally when inference is unavailable."""
     query = user_query.lower()
     if re.search(
-        r"филиал|строит|капитальн|ремонт|нов\w* точк|откр\w* (?:пекар|магазин|кафе|офис)",
+        r"филиал|строит|капитальн|ремонт|нов\w* точк|"
+        r"откр\w* (?:пекар|магазин|кафе|офис)",
         query,
     ):
         product, term, title = (

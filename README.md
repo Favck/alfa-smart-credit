@@ -82,26 +82,26 @@ docker compose exec backend python manage.py createsuperuser
 ```
 
 ## Подключение LLM жюри
-+
-+Сервис поддерживает подключение любой Open-Weights модели через
-+OpenAI-совместимый API (vLLM, Ollama, TGI). Настройки задаются в `.env`.
-+В случае отсутствия или недоступности сервера инференса конвейер прозрачно
-+переключается на встроенный rule-based fallback без прерывания пользовательского
-+сценария. Веса LLM не скачиваются; контейнеров Ollama/vLLM в Compose нет.
-+
-+```dotenv
-+LLM_BASE_URL=http://internal-jury-llm-host:8000/v1
-+LLM_API_KEY=jury_token
-+LLM_MODEL_NAME=qwen2.5:7b
-+```
-+
-+После задания адреса выполнить `docker compose up --build`. Без адреса работают
-+локальные правила: разрыв → overdraft, товар → working_capital, оборудование →
-+equipment_purchase, новая точка → investment. Таймаут внешнего запроса — 5 с.
-+Compose содержит только backend (Django и готовая Vue-сборка), ml (FastAPI)
-+и db (PostgreSQL); PostgreSQL и ML не публикуют порты на хосте.
-+
-+## Окружение и конфигурация
+
+Сервис поддерживает подключение любой Open-Weights модели через
+OpenAI-совместимый API (vLLM, Ollama, TGI). Настройки задаются в `.env`.
+В случае отсутствия или недоступности сервера инференса конвейер прозрачно
+переключается на встроенный rule-based fallback без прерывания пользовательского
+сценария. Веса LLM не скачиваются; контейнеров Ollama/vLLM в Compose нет.
+
+```dotenv
+LLM_BASE_URL=http://internal-jury-llm-host:8000/v1
+LLM_API_KEY=jury_token
+LLM_MODEL_NAME=qwen2.5:7b
+```
+
+После задания адреса выполнить `docker compose up --build`. Без адреса работают
+локальные правила: разрыв → overdraft, товар → working_capital, оборудование →
+equipment_purchase, новая точка → investment. Таймаут внешнего запроса — 5 с.
+Compose содержит только backend (Django и готовая Vue-сборка), ml (FastAPI)
+и db (PostgreSQL); PostgreSQL и ML не публикуют порты на хосте.
+
+## Окружение и конфигурация
 
 Python 3.11 (Docker), Node.js 22 (CI/production-сборка). Точные Python-пакеты
 в `backend/requirements*.txt`, frontend в `frontend/package-lock.json`.

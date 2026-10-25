@@ -26,6 +26,8 @@ class Command(BaseCommand):
                 user = get_user_model().objects.get(
                     username=fields["username"]
                 )
+                if user.pk != record["pk"]:
+                    raise CommandError("Imported user ID mismatch")
                 if user.password != fields["password"]:
                     raise CommandError("Imported password hash mismatch")
         Document = apps.get_model("api", "Document")
